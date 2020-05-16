@@ -68,17 +68,20 @@ After faceGeometry.update(); you can use faceGeometry.track() to place objects r
 dummy.position.copy(track.position);
 dummy.rotation.setFromRotationMatrix(track.rotation);
 ```
-It will calculate a triangle defined by the three provided vertex ids, and return a position, a normal, and an orthogonal basis that cane be used to rotate and object along the correct normal of that triangle.
+It will calculate a triangle defined by the three provided vertex ids, and return a ```position```, a ```normal```, and an orthogonal basis ```rotation``` that cane be used to rotate and object along the correct normal of that triangle.
 
 Use [this image](https://user-images.githubusercontent.com/7452527/53465316-4a282000-3a02-11e9-8e85-0006e3100da0.png) as a reference for vertex Ids.
 
 ## API
 
-```FaceMeshFaceGeometry::update(face: FaceEstimation, cameraIsFlipped: boolean);```
+```FaceMeshFaceGeometry::update(face: FaceEstimation, cameraIsFlipped: boolean): void```
+
 Updates the vertices and recalculates normals.
 
-```FaceMeshFaceGeometry::setSize(width: number, height: number);```
+```FaceMeshFaceGeometry::setSize(width: number, height: number): void```
+
 Sets the internal values to reframe the coordinates.
 
-```FaceMeshFaceGeometry::track(id0: number, id1: number, id2: number);```
+```FaceMeshFaceGeometry::track(id0: number, id1: number, id2: number): { position: Vector3, normal: Vector3, rotation: Matrix4 }```
+
 Calculates a triangle defined by vertices id0, id1 and id2, return its center, normal and orthogonal basis.
