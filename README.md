@@ -62,7 +62,7 @@ camera.bottom = -.5 * height;
 camera.updateProjectionMatrix();
 ```
 
-## Track objects
+## Track points in geometry
 
 After ```faceGeometry.update()``` you can use ```faceGeometry.track()``` to place objects relative to the surface of the face.
 
