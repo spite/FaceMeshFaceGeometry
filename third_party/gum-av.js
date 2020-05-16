@@ -84,8 +84,6 @@ class GumAudioVideo extends HTMLElement {
 
   async init() {
     await this.enumerateDevices();
-    console.log(this.devices);
-    console.log(this.devices.videoinput.length);
     if (this.devices.videoinput.length === 1) {
       this.nextDeviceButton.style.display = 'none';
       this.currentVideoInput = 0;
@@ -128,19 +126,16 @@ class GumAudioVideo extends HTMLElement {
       this.reject = reject;
     });
 
-    console.log(device);
-    const constraints = { video: { deviceId: device.deviceId, width: 1280, height: 720 } };
+    const constraints = { video: { deviceId: device.deviceId } };
     this.deviceNameLabel.textContent = 'Connecting...';
     let stream = null;
 
     try {
       stream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log(stream);
       this.deviceNameLabel.textContent = device.label;
       this.createVideoElement();
       this.video.srcObject = stream;
     } catch (err) {
-      console.log(err);
       this.deviceNameLabel.textContent = `${err.name} ${err.message}`;
     }
   }
