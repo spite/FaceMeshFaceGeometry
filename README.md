@@ -24,7 +24,7 @@ if(faces.length) {
   faceGeometry.update(faces[0]);
 }
 ```
-You have to call FaceMeshFaceGeometry::setSize with the width and height of the video to normalise the coordinates so they align with the video source.
+You have to call ```FaceMeshFaceGeometry::setSize``` with the width and height of the video to normalise the coordinates so they align with the video source.
 
 That's all there is. You can use ```faceGeometry.geometry``` as any other ```BufferGeometry```:
 
@@ -64,7 +64,7 @@ camera.updateProjectionMatrix();
 
 ## Track objects
 
-After faceGeometry.update(); you can use faceGeometry.track() to place objects relative to the surface of the face.
+After ```faceGeometry.update()``` you can use ```faceGeometry.track()``` to place objects relative to the surface of the face.
 
 ```const track = faceGeometry.track(5, 45, 275);
 dummy.position.copy(track.position);
