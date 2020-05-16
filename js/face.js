@@ -1,18 +1,19 @@
 import { FACES as indices, UVS as texCoords } from './geometry.js';
 import { BufferGeometry, BufferAttribute, Vector3, Triangle, Matrix4 } from '../third_party/three.module.js';
 
-class FaceMeshFaceGeometry {
+class FaceMeshFaceGeometry extends BufferGeometry {
   constructor() {
+    super();
+
     this.flipped = false;
-    this.geometry = new BufferGeometry();
     this.positions = new Float32Array(468 * 3);
     this.uvs = new Float32Array(468 * 2);
-    this.geometry.setAttribute('position', new BufferAttribute(this.positions, 3));
-    this.geometry.setAttribute('uv', new BufferAttribute(this.uvs, 2));
+    this.setAttribute('position', new BufferAttribute(this.positions, 3));
+    this.setAttribute('uv', new BufferAttribute(this.uvs, 2));
     this.setUvs();
-    this.geometry.setIndex(indices);
-    this.geometry.computeVertexNormals();
-    this.geometry.applyMatrix4(new Matrix4().makeScale(10, 10, 10));
+    this.setIndex(indices);
+    this.computeVertexNormals();
+    this.applyMatrix4(new Matrix4().makeScale(10, 10, 10));
     this.p0 = new Vector3();
     this.p1 = new Vector3();
     this.p2 = new Vector3();
@@ -24,7 +25,7 @@ class FaceMeshFaceGeometry {
       this.uvs[j] = this.flipped ? 1 - (texCoords[j] / 4096) : (texCoords[j] / 4096);
       this.uvs[j + 1] = 1 - (texCoords[j + 1]) / 4096;
     }
-    this.geometry.getAttribute('uv').needsUpdate = true;
+    this.getAttribute('uv').needsUpdate = true;
   }
 
   setSize(w, h) {
@@ -48,8 +49,8 @@ class FaceMeshFaceGeometry {
       this.positions[ptr + 2] = -p[2];
       ptr += 3;
     }
-    this.geometry.attributes.position.needsUpdate = true;
-    this.geometry.computeVertexNormals();
+    this.attributes.position.needsUpdate = true;
+    this.computeVertexNormals();
   }
 
   track(id0, id1, id2) {

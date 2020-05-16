@@ -79,7 +79,7 @@ const material = new MeshStandardMaterial({
 const faceGeometry = new FaceMeshFaceGeometry();
 
 // Create mask mesh.
-const mask = new Mesh(faceGeometry.geometry, material);
+const mask = new Mesh(faceGeometry, material);
 scene.add(mask);
 mask.receiveShadow = mask.castShadow = true;
 
