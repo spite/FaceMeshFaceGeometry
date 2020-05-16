@@ -1,4 +1,4 @@
-import { FACES as indices, UVS as texCoords } from './faces.js';
+import { FACES as indices, UVS as texCoords } from './geometry.js';
 import { BufferGeometry, BufferAttribute, Vector3, Triangle, Matrix4 } from '../third_party/three.module.js';
 
 class FaceMeshFaceGeometry {
