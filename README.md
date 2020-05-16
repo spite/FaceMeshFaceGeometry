@@ -2,7 +2,7 @@
 
 Three.js helper for FaceMesh https://github.com/tensorflow/tfjs-models/tree/master/facemesh
 
-![FaceMeshFaceGeometry](https://raw.githubusercontent.com/spite/FaceMeshFaceGeometry/master/uvmap.png)
+![FaceMeshFaceGeometry](uvmap.png)
 
 ## How to use
 
