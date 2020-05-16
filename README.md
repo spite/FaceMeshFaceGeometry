@@ -28,10 +28,10 @@ if(faces.length) {
 ```
 You have to call ```FaceMeshFaceGeometry::setSize``` with the width and height of the video to normalise the coordinates so they align with the video source.
 
-That's all there is. You can use ```faceGeometry.geometry``` as any other ```BufferGeometry```:
+That's all there is. You can use ```faceGeometry``` as any other ```BufferGeometry```:
 
 ```const material = new MeshNormalMaterial();
-const mask = new Mesh(faceGeometry.geometry, material);
+const mask = new Mesh(faceGeometry, material);
 scene.add(mask);
 ```
 
