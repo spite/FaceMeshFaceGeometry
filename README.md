@@ -2,6 +2,8 @@
 
 Three.js helper for FaceMesh https://github.com/tensorflow/tfjs-models/tree/master/facemesh
 
+![FaceMeshFaceGeometry](https://raw.githubusercontent.com/spite/FaceMeshFaceGeometry/master/uvmap.png)
+
 ## How to use
 
 After following the code in the FaceMesh repo, you end up with a face estimation.
