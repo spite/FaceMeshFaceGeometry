@@ -15,6 +15,8 @@ import {
   VideoTexture,
   MeshStandardMaterial,
   Vector3,
+  BoxBufferGeometry,
+  MeshNormalMaterial,
 } from "../../third_party/three.module.js";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
 import { OrbitControls } from "../../third_party/OrbitControls.js";
@@ -82,7 +84,18 @@ const amount = 500;
 const instancedFaces = new InstancedMesh(faceGeometry, material, amount);
 scene.add(instancedFaces);
 instancedFaces.receiveShadow = instancedFaces.castShadow = true;
-instancedFaces.scale.setScalar(50);
+instancedFaces.scale.setScalar(20);
+
+// Dummy instances for debugging.
+const mat = new MeshNormalMaterial({ wireframe: true });
+const instancedDummy = new InstancedMesh(
+  new BoxBufferGeometry(1, 1, 1),
+  mat,
+  amount
+);
+//scene.add(instancedDummy);
+instancedDummy.receiveShadow = instancedDummy.castShadow = true;
+instancedDummy.scale.setScalar(10);
 
 // Add lights.
 const spotLight = new SpotLight(0xffffbb, 1, 0, Math.PI / 6);
@@ -143,8 +156,8 @@ async function render(model) {
   }
 
   // Update positions of instances.
-  const r = 1.5;
-  const rr = 0.5;
+  const r = 7.5 / 2;
+  const rr = 2.5 / 2;
   const p = new Vector3();
   const pp = new Vector3();
   const rot = new Matrix4();
@@ -171,8 +184,10 @@ async function render(model) {
     dummy.updateMatrix();
     dummy.rotation.setFromRotationMatrix(lookAt);
     instancedFaces.setMatrixAt(i, dummy.matrix);
+    instancedDummy.setMatrixAt(i, dummy.matrix);
   }
   instancedFaces.instanceMatrix.needsUpdate = true;
+  instancedDummy.instanceMatrix.needsUpdate = true;
 
   if (wireframe) {
     // Render the faces.

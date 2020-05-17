@@ -69,10 +69,12 @@ class FaceMeshFaceGeometry extends BufferGeometry {
       this.setVideoUvs();
       if (this.normalizeCoords) {
         let ptr = 0;
-        for (let j = 0; j < 468 * 2; j += 2) {
-          this.positions[ptr] /= this.w;
-          this.positions[ptr + 1] /= this.w;
-          this.positions[ptr + 2] /= 500;
+        const ar = this.h / this.w;
+        const scale = 2 * Math.sqrt(this.w / 1000);
+        for (const p of face.scaledMesh) {
+          this.positions[ptr] = scale * (p[0] / this.w + 0.5);
+          this.positions[ptr + 1] = scale * (-p[1] / this.h + 0.5) * ar;
+          this.positions[ptr + 2] = -p[2] / 500;
           ptr += 3;
         }
       }
