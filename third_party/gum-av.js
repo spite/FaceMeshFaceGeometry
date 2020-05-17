@@ -1,6 +1,6 @@
 // icon from https://www.iconfinder.com/icons/1348651/arrow_forward_next_right_icon
 
-const template = document.createElement('template');
+const template = document.createElement("template");
 template.innerHTML = `
 <style>
 :host {
@@ -60,22 +60,22 @@ p {
 </div>
 `;
 
-
 class GumAudioVideo extends HTMLElement {
   constructor() {
     super();
-    this.attachShadow({ mode: 'open' });
+    this.attachShadow({ mode: "open" });
     this.shadowRoot.appendChild(template.content.cloneNode(true));
-    this.deviceNameLabel = this.shadowRoot.querySelector('#deviceName');
-    this.nextDeviceButton = this.shadowRoot.querySelector('#nextDevice');
+    this.deviceNameLabel = this.shadowRoot.querySelector("#deviceName");
+    this.nextDeviceButton = this.shadowRoot.querySelector("#nextDevice");
     this.currentVideoInput = 0;
     this.devices = {
       audioinput: [],
       audiooutput: [],
-      videoinput: []
-    }
-    this.nextDeviceButton.addEventListener('click', (e) => {
-      this.currentVideoInput = (this.currentVideoInput + 1) % this.devices.videoinput.length;
+      videoinput: [],
+    };
+    this.nextDeviceButton.addEventListener("click", (e) => {
+      this.currentVideoInput =
+        (this.currentVideoInput + 1) % this.devices.videoinput.length;
       this.getMedia(this.devices.videoinput[this.currentVideoInput]);
     });
 
@@ -85,11 +85,11 @@ class GumAudioVideo extends HTMLElement {
   async init() {
     await this.enumerateDevices();
     if (this.devices.videoinput.length === 1) {
-      this.nextDeviceButton.style.display = 'none';
+      this.nextDeviceButton.style.display = "none";
       this.currentVideoInput = 0;
       this.getMedia(this.devices.videoinput[this.currentVideoInput]);
     } else {
-      this.nextDeviceButton.style.display = 'block';
+      this.nextDeviceButton.style.display = "block";
       this.currentVideoInput = 0;
       this.getMedia(this.devices.videoinput[this.currentVideoInput]);
     }
@@ -105,13 +105,13 @@ class GumAudioVideo extends HTMLElement {
     for (const device of devices) {
       let name;
       switch (device.kind) {
-        case 'audioinput':
+        case "audioinput":
           name = device.label || "Microphone";
           break;
-        case 'audiooutput':
+        case "audiooutput":
           name = device.label || "Speakers";
           break;
-        case 'videoinput':
+        case "videoinput":
           name = device.label || "Camera";
           break;
       }
@@ -120,14 +120,15 @@ class GumAudioVideo extends HTMLElement {
   }
 
   async getMedia(device) {
-
     this.ready = new Promise((resolve, reject) => {
       this.resolve = resolve;
       this.reject = reject;
     });
 
-    const constraints = { video: { deviceId: device.deviceId } };
-    this.deviceNameLabel.textContent = 'Connecting...';
+    const constraints = {
+      video: { deviceId: device.deviceId, width: 500, height: 500 },
+    };
+    this.deviceNameLabel.textContent = "Connecting...";
     let stream = null;
 
     try {
@@ -142,15 +143,15 @@ class GumAudioVideo extends HTMLElement {
 
   createVideoElement() {
     if (this.video && this.video.srcObject) {
-      this.video.srcObject.getTracks().forEach(track => {
+      this.video.srcObject.getTracks().forEach((track) => {
         track.stop();
       });
     }
     if (!this.video) {
-      this.video = document.createElement('video');
+      this.video = document.createElement("video");
       this.video.autoplay = true;
       this.video.playsinline = true;
-      this.video.addEventListener('loadeddata', () => {
+      this.video.addEventListener("loadeddata", () => {
         this.resolve();
       });
       this.shadowRoot.append(this.video);
@@ -158,4 +159,4 @@ class GumAudioVideo extends HTMLElement {
   }
 }
 
-customElements.define('gum-av', GumAudioVideo);
+customElements.define("gum-av", GumAudioVideo);
