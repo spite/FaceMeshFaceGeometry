@@ -133,6 +133,8 @@ async function render(model) {
 
   // Flip video element horizontally if necessary.
   av.video.style.transform = flipCamera ? "scaleX(-1)" : "scaleX(1)";
+  av.style.opacity = 1;
+  av.video.style.display = "none";
 
   // Resize orthographic camera to video dimensions if necessary.
   if (width !== av.video.videoWidth || height !== av.video.videoHeight) {
