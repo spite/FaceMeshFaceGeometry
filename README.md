@@ -2,6 +2,8 @@
 
 Three.js helper for FaceMesh https://github.com/tensorflow/tfjs-models/tree/master/facemesh
 
+---
+
 Demo with textured mask: https://spite.github.io/FaceMeshFaceGeometry/examples/mask/index.html
 
 Demo with remapped video: https://spite.github.io/FaceMeshFaceGeometry/examples/video/index.html
@@ -58,6 +60,12 @@ You can use the input to the FaceMesh model to texture the 3d mesh of the face. 
 ```const faceGeometry = new FaceMeshFaceGeometry({useVideoTexture: true});```
 
 That will remap the UV coordinates of the geometry to fit the input. The vertex coordinates from the estimation will be projected every frame into the UV space. That means that the UV coordinates for the shader won't work for texture mapping (i.e,, alpha mask, ao map, etc. will be mapped differently and probably wrong).
+
+## How to use as a 3d mesh, independently of the camera
+
+The range of the vertices is based on the resolution of the input feed, so it changes depending on the chosen video or image input. Construct the FaceGeometry helper with the option normalizeCoords set to true and the mesh will be in a resonable consistent size.
+
+```const faceGeometry = new FaceMeshFaceGeometry({normalizeCoords: true});```
 
 ## How to update my threejs camera
 
