@@ -43,21 +43,10 @@ let width = 0;
 let height = 0;
 
 function resize() {
-  const videoAspectRatio = width / height;
   const windowWidth = window.innerWidth;
   const windowHeight = window.innerHeight;
-  const windowAspectRatio = windowWidth / windowHeight;
-  let adjustedWidth;
-  let adjustedHeight;
-  if (videoAspectRatio > windowAspectRatio) {
-    adjustedWidth = windowWidth;
-    adjustedHeight = windowWidth / videoAspectRatio;
-  } else {
-    adjustedWidth = windowHeight * videoAspectRatio;
-    adjustedHeight = windowHeight;
-  }
-  renderer.setSize(adjustedWidth, adjustedHeight);
-  camera.aspect = videoAspectRatio;
+  renderer.setSize(windowWidth, windowHeight);
+  camera.aspect = windowWidth / windowHeight;
   camera.updateProjectionMatrix();
 }
 
