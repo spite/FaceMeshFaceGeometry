@@ -12,6 +12,7 @@ class FaceMeshFaceGeometry extends BufferGeometry {
     super();
 
     this.useVideoTexture = options.useVideoTexture || false;
+    this.normalizeCoords = options.normalizeCoords || false;
     this.flipped = false;
     this.positions = new Float32Array(468 * 3);
     this.uvs = new Float32Array(468 * 2);
@@ -57,25 +58,32 @@ class FaceMeshFaceGeometry extends BufferGeometry {
   update(face, cameraFlipped) {
     let ptr = 0;
     for (const p of face.scaledMesh) {
-      if (cameraFlipped) {
-        this.positions[ptr] = p[0] + 0.5 * this.w;
-      } else {
-        this.positions[ptr] = p[0] - 0.5 * this.w;
-      }
+      this.positions[ptr] = cameraFlipped
+        ? p[0] + 0.5 * this.w
+        : p[0] - 0.5 * this.w;
       this.positions[ptr + 1] = this.h - p[1] - 0.5 * this.h;
       this.positions[ptr + 2] = -p[2];
       ptr += 3;
     }
-    this.attributes.position.needsUpdate = true;
-    this.computeVertexNormals();
     if (this.useVideoTexture) {
       this.setVideoUvs();
+      if (this.normalizeCoords) {
+        let ptr = 0;
+        for (let j = 0; j < 468 * 2; j += 2) {
+          this.positions[ptr] /= this.w;
+          this.positions[ptr + 1] /= this.w;
+          this.positions[ptr + 2] /= 500;
+          ptr += 3;
+        }
+      }
     } else {
       if (cameraFlipped !== this.flipped) {
         this.flipped = cameraFlipped;
         this.setUvs();
       }
     }
+    this.attributes.position.needsUpdate = true;
+    this.computeVertexNormals();
   }
 
   track(id0, id1, id2) {
