@@ -74,7 +74,7 @@ class FaceMeshFaceGeometry extends BufferGeometry {
         for (const p of face.scaledMesh) {
           this.positions[ptr] = scale * (p[0] / this.w + 0.5);
           this.positions[ptr + 1] = scale * (-p[1] / this.h + 0.5) * ar;
-          this.positions[ptr + 2] = -p[2] / 500;
+          this.positions[ptr + 2] = scale * (-p[2] / 500);
           ptr += 3;
         }
       }
