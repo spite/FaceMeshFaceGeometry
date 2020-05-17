@@ -55,7 +55,7 @@ You can use the input to the FaceMesh model to texture the 3d mesh of the face. 
 
 ```const faceGeometry = new FaceMeshFaceGeometry({useVideoTexture: true});```
 
-That will remap the UV coordinates of the geometry to fit the input.
+That will remap the UV coordinates of the geometry to fit the input. The vertex coordinates from the estimation will be projected every frame into the UV space. That means that the UV coordinates for the shader won't work for texture mapping (i.e,, alpha mask, ao map, etc. will be mapped differently and probably wrong).
 
 ## How to update my threejs camera
 
