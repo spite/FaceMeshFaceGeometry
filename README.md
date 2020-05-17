@@ -47,6 +47,13 @@ if(faces.length) {
   faceGeometry.update(faces[0], true);
 }
 ```
+## How to use the video/input as a texture for the face
+
+You can use the input to the FaceMesh model to texture the 3d mesh of the face. Constuct the helper with:
+
+```const faceGeometry = new FaceMeshFaceGeometry({useVideoTexture: true});```
+
+That will remap the UV coordinates of the geometry to fit the input.
 
 ## How to update my threejs camera
 
