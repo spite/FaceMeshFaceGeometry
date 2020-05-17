@@ -6,6 +6,8 @@ Demo with textured mask: https://spite.github.io/FaceMeshFaceGeometry/examples/m
 
 Demo with remapped video: https://spite.github.io/FaceMeshFaceGeometry/examples/video/index.html
 
+Demo with instanced geometry: https://spite.github.io/FaceMeshFaceGeometry/examples/instanced/index.html
+
 ![FaceMeshFaceGeometry](uvmap.png)
 
 ## How to use
