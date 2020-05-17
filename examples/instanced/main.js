@@ -35,7 +35,7 @@ const scene = new Scene();
 
 // Change to renderer.render(scene, debugCamera); for interactive view.
 const camera = new PerspectiveCamera(75, 1, 0.1, 1000);
-camera.position.set(50, 0, 100);
+camera.position.set(100, 0, 150);
 camera.lookAt(scene.position);
 const controls = new OrbitControls(camera, renderer.domElement);
 
@@ -72,27 +72,30 @@ const material = new MeshStandardMaterial({
 });
 
 // Create a new geometry helper, specifying that the texture coordinates are to be based on the same video as the model input.
-const faceGeometry = new FaceMeshFaceGeometry({ useVideoTexture: true });
+const faceGeometry = new FaceMeshFaceGeometry({
+  useVideoTexture: true,
+  normalizeCoords: true,
+});
 
 const amount = 500;
 // Create instanced mesh of faces.
 const instancedFaces = new InstancedMesh(faceGeometry, material, amount);
 scene.add(instancedFaces);
 instancedFaces.receiveShadow = instancedFaces.castShadow = true;
-instancedFaces.scale.setScalar(0.05);
+instancedFaces.scale.setScalar(50);
 
 // Add lights.
 const spotLight = new SpotLight(0xffffbb, 1, 0, Math.PI / 6);
 spotLight.position.set(0.5, 0.5, 1);
-spotLight.position.multiplyScalar(400);
+spotLight.position.multiplyScalar(200);
 
 spotLight.castShadow = true;
 
 spotLight.shadow.mapSize.width = 1024;
 spotLight.shadow.mapSize.height = 1024;
 
-spotLight.shadow.camera.near = 200;
-spotLight.shadow.camera.far = 800;
+spotLight.shadow.camera.near = 50;
+spotLight.shadow.camera.far = 350;
 
 spotLight.shadow.bias = -0.005;
 
@@ -140,8 +143,8 @@ async function render(model) {
   }
 
   // Update positions of instances.
-  const r = 1500;
-  const rr = 500;
+  const r = 1.5;
+  const rr = 0.5;
   const p = new Vector3();
   const pp = new Vector3();
   const rot = new Matrix4();
