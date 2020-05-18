@@ -64,6 +64,8 @@ class GumAudioVideo extends HTMLElement {
   constructor() {
     super();
 
+    this.invalidateVideoSource();
+
     this.attachShadow({ mode: "open" });
     this.shadowRoot.appendChild(template.content.cloneNode(true));
     this.deviceNameLabel = this.shadowRoot.querySelector("#deviceName");
@@ -77,6 +79,7 @@ class GumAudioVideo extends HTMLElement {
     this.nextDeviceButton.addEventListener("click", (e) => {
       this.currentVideoInput =
         (this.currentVideoInput + 1) % this.devices.videoinput.length;
+      this.invalidateVideoSource();
       this.getMedia(this.devices.videoinput[this.currentVideoInput]);
     });
 
@@ -88,16 +91,18 @@ class GumAudioVideo extends HTMLElement {
     if (this.devices.videoinput.length === 1) {
       this.nextDeviceButton.style.display = "none";
       this.currentVideoInput = 0;
+      this.invalidateVideoSource();
       this.getMedia(this.devices.videoinput[this.currentVideoInput]);
     } else {
       this.nextDeviceButton.style.display = "block";
       this.currentVideoInput = 0;
+      this.invalidateVideoSource();
       this.getMedia(this.devices.videoinput[this.currentVideoInput]);
     }
   }
 
   async ready() {
-    await this.videoIsReady;
+    await this.videoLoadedData;
   }
 
   async enumerateDevices() {
@@ -124,12 +129,14 @@ class GumAudioVideo extends HTMLElement {
     }
   }
 
-  async getMedia(device) {
-    this.videoIsReady = new Promise((resolve, reject) => {
-      this.resolve = resolve;
-      this.reject = reject;
+  invalidateVideoSource() {
+    this.videoLoadedData = new Promise((resolve, reject) => {
+      this.resolveLoadedData = resolve;
+      this.rejectLoadedData = reject;
     });
+  }
 
+  async getMedia(device) {
     const constraints = {
       video: { deviceId: device.deviceId, width: 500, height: 500 },
     };
@@ -142,9 +149,7 @@ class GumAudioVideo extends HTMLElement {
       this.createVideoElement();
       this.video.srcObject = stream;
     } catch (err) {
-      const msg = `${err.name} ${err.message}`;
-      this.deviceNameLabel.textContent = msg;
-      console.error(msg);
+      this.deviceNameLabel.textContent = `${err.name} ${err.message}`;
     }
   }
 
@@ -159,7 +164,7 @@ class GumAudioVideo extends HTMLElement {
       this.video.autoplay = true;
       this.video.playsinline = true;
       this.video.addEventListener("loadeddata", () => {
-        this.resolve();
+        this.resolveLoadedData();
       });
       this.shadowRoot.append(this.video);
     }
