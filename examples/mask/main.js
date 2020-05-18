@@ -146,7 +146,7 @@ let flipCamera = true;
 
 async function render(model) {
   // Wait for video to be ready (loadeddata).
-  await av.ready;
+  await av.ready();
 
   // Flip video element horizontally if necessary.
   av.video.style.transform = flipCamera ? "scaleX(-1)" : "scaleX(1)";
@@ -204,12 +204,9 @@ async function render(model) {
 
 // Init the demo, loading dependencies.
 async function init() {
-  await Promise.all([tf.setBackend("webgl"), av.ready]);
+  await Promise.all([tf.setBackend("webgl"), av.ready()]);
   status.textContent = "Loading model...";
-  const [, model] = await Promise.all([
-    av.video.ready,
-    facemesh.load({ maxFaces: 1 }),
-  ]);
+  const model = await facemesh.load({ maxFaces: 1 });
   status.textContent = "Detecting face...";
   render(model);
 }

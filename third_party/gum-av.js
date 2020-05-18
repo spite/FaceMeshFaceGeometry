@@ -63,6 +63,7 @@ p {
 class GumAudioVideo extends HTMLElement {
   constructor() {
     super();
+
     this.attachShadow({ mode: "open" });
     this.shadowRoot.appendChild(template.content.cloneNode(true));
     this.deviceNameLabel = this.shadowRoot.querySelector("#deviceName");
@@ -95,6 +96,10 @@ class GumAudioVideo extends HTMLElement {
     }
   }
 
+  async ready() {
+    await this.videoIsReady;
+  }
+
   async enumerateDevices() {
     if (!navigator.mediaDevices) {
       this.deviceNameLabel.textContent = `Can't enumerate devices. Make sure the page is HTTPS, and the browser support getUserMedia.`;
@@ -120,7 +125,7 @@ class GumAudioVideo extends HTMLElement {
   }
 
   async getMedia(device) {
-    this.ready = new Promise((resolve, reject) => {
+    this.videoIsReady = new Promise((resolve, reject) => {
       this.resolve = resolve;
       this.reject = reject;
     });
@@ -137,7 +142,9 @@ class GumAudioVideo extends HTMLElement {
       this.createVideoElement();
       this.video.srcObject = stream;
     } catch (err) {
-      this.deviceNameLabel.textContent = `${err.name} ${err.message}`;
+      const msg = `${err.name} ${err.message}`;
+      this.deviceNameLabel.textContent = msg;
+      console.error(msg);
     }
   }
 
