@@ -29,11 +29,9 @@ class FaceMeshFaceGeometry extends BufferGeometry {
   }
 
   setUvs() {
-    for (let j = 0; j < 468 * 2; j += 2) {
-      this.uvs[j] = this.flipped
-        ? 1 - texCoords[j] / 4096
-        : texCoords[j] / 4096;
-      this.uvs[j + 1] = 1 - texCoords[j + 1] / 4096;
+    for (let j = 0; j < 468; j++) {
+      this.uvs[j * 2] = this.flipped ? 1 - texCoords[j][0] : texCoords[j][0];
+      this.uvs[j * 2 + 1] = 1 - texCoords[j][1];
     }
     this.getAttribute("uv").needsUpdate = true;
   }
