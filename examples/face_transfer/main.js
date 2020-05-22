@@ -84,7 +84,7 @@ const material = new MeshStandardMaterial({
   color: 0xffffff,
   roughness: 0.8,
   metalness: 0,
-  map: null, // Set later.
+  map: null, // Set later by the face detector.
   transparent: true,
   side: DoubleSide,
   opacity: 1,
