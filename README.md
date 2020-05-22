@@ -12,6 +12,8 @@ Demo with instanced geometry: https://spite.github.io/FaceMeshFaceGeometry/examp
 
 Demo of texture mapping from an image: https://spite.github.io/FaceMeshFaceGeometry/examples/face_transfer/index.html
 
+Demo of face switching: https://spite.github.io/FaceMeshFaceGeometry/examples/face_off/index.html
+
 ![FaceMeshFaceGeometry](uvmap.png)
 
 ## How to use
