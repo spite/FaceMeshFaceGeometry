@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>FaceMesh example</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      gum-av,
+      canvas {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      canvas {
+        margin: auto;
+      }
+
+      #container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: black;
+      }
+
+      #status {
+        position: absolute;
+        left: 0;
+        top: 0;
+        pointer-events: none;
+        color: white;
+        padding: 1em;
+        font-family: roboto, sans-serif;
+        z-index: 1;
+        background: black;
+      }
+
+      gum-av {
+        font-family: roboto, sans-serif;
+        color: white;
+        opacity: 0;
+        transition: opacity 1s ease-out;
+      }
+    </style>
+  </head>
+
+  <body>
+    <p id="status">Loading...</p>
+    <div id="container">
+      <gum-av></gum-av>
+      <canvas id="canvas"></canvas>
+    </div>
+  </body>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/facemesh"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/tf-backend-wasm.js"></script>
+
+  <script src="../../third_party/gum-av.js" type="module"></script>
+  <script src="main.js" type="module"></script>
+</html>
