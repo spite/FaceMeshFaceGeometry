@@ -10,6 +10,8 @@ Demo with remapped video: https://spite.github.io/FaceMeshFaceGeometry/examples/
 
 Demo with instanced geometry: https://spite.github.io/FaceMeshFaceGeometry/examples/instanced/index.html
 
+Demo of texture mapping from an image: https://spite.github.io/FaceMeshFaceGeometry/examples/face_transfer/index.html
+
 ![FaceMeshFaceGeometry](uvmap.png)
 
 ## How to use
