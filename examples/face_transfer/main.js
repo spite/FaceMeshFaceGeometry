@@ -70,7 +70,7 @@ renderer.render(scene, camera);
 
 // Load textures for mask material.
 const loader = new TextureLoader();
-const colorTexture = loader.load("../../assets/mesh_map.jpg");
+const colorTexture = loader.load("../../assets/mesh_map_small.jpg");
 
 // Create wireframe material for debugging.
 const wireframeMaterial = new MeshBasicMaterial({
