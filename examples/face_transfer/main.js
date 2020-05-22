@@ -68,6 +68,9 @@ window.addEventListener("resize", () => {
 resize();
 renderer.render(scene, camera);
 
+// Load textures for mask material.
+const loader = new TextureLoader();
+
 // Create wireframe material for debugging.
 const wireframeMaterial = new MeshBasicMaterial({
   color: 0xff00ff,
@@ -81,7 +84,7 @@ const material = new MeshStandardMaterial({
   color: 0xffffff,
   roughness: 0.8,
   metalness: 0,
-  map: null, // Set later by the loaded face.
+  map: null, // Set later.
   transparent: true,
   side: DoubleSide,
   opacity: 1,
