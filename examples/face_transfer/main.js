@@ -68,7 +68,7 @@ window.addEventListener("resize", () => {
 resize();
 renderer.render(scene, camera);
 
-// Load textures for mask material.
+// Create a loader.
 const loader = new TextureLoader();
 
 // Create wireframe material for debugging.
