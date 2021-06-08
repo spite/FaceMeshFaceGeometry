@@ -7,6 +7,17 @@ import {
   Matrix4,
 } from "../third_party/three.module.js";
 
+function getScale(face, id1, id2) {
+  var p1 = face.mesh[id1];
+  var p1_scaled = face.scaledMesh[id1];
+  var p2 = face.mesh[id2];
+  var p2_scaled = face.scaledMesh[id2];
+
+  var a = p2[0] - p1[0];
+  var b = p2_scaled[0] - p1_scaled[0];
+  return b / a;
+}
+
 class FaceMeshFaceGeometry extends BufferGeometry {
   constructor(options = {}) {
     super();
@@ -25,6 +36,7 @@ class FaceMeshFaceGeometry extends BufferGeometry {
     this.p0 = new Vector3();
     this.p1 = new Vector3();
     this.p2 = new Vector3();
+    this.face = null;
     this.triangle = new Triangle();
   }
 
@@ -55,6 +67,7 @@ class FaceMeshFaceGeometry extends BufferGeometry {
 
   update(face, cameraFlipped) {
     let ptr = 0;
+    this.face = face;
     for (const p of face.scaledMesh) {
       this.positions[ptr] = cameraFlipped
         ? p[0] + 0.5 * this.w
@@ -103,7 +116,7 @@ class FaceMeshFaceGeometry extends BufferGeometry {
     const y2 = new Vector3().crossVectors(x, z).normalize();
     const z2 = new Vector3().crossVectors(x, y2).normalize();
     matrix.makeBasis(x, y2, z2);
-    return { position: center, normal, rotation: matrix };
+    return { position: center, normal, rotation: matrix,scale:getScale(this.face,id1,id2) };
   }
 }
 
