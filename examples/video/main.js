@@ -19,6 +19,7 @@ import {
 } from "../../third_party/three.module.js";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
 import { OrbitControls } from "../../third_party/OrbitControls.js";
+import GUI from 'https://cdn.jsdelivr.net/npm/lil-gui@0.17/+esm';
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
@@ -35,7 +36,6 @@ renderer.outputEncoding = sRGBEncoding;
 const scene = new Scene();
 const camera = new OrthographicCamera(1, 1, 1, 1, -1000, 1000);
 
-// Change to renderer.render(scene, debugCamera); for interactive view.
 const debugCamera = new PerspectiveCamera(75, 1, 0.1, 1000);
 debugCamera.position.set(300, 300, 300);
 debugCamera.lookAt(scene.position);
@@ -151,11 +151,24 @@ const rot = new Matrix4().makeRotationX(-Math.PI / 4);
 halo.geometry.applyMatrix4(rot);
 halo.scale.setScalar(80);
 
+let orbitControl = false
+
 // Enable wireframe to debug the mesh on top of the material.
 let wireframe = false;
 
 // Defines if the source should be flipped horizontally.
 let flipCamera = true;
+
+const gui = new GUI();
+const params = {
+  orbitControl,
+  wireframe,
+  flipCamera
+}
+gui.add( params, 'orbitControl' ).onChange(v => orbitControl = v);
+gui.add( params, 'wireframe' ).onChange(v => wireframe = v);
+gui.add( params, 'flipCamera' ).onChange(v => flipCamera = v);
+
 
 async function render(model) {
   // Wait for video to be ready (loadeddata).
@@ -213,17 +226,18 @@ async function render(model) {
     // Render the mask.
     renderer.autoClear = true;
     mask.material = material;
-    renderer.render(scene, camera);
+    renderer.render(scene, orbitControl ? debugCamera : camera);
     // Prevent renderer from clearing the color buffer.
     renderer.autoClear = false;
     renderer.clear(false, true, false);
     mask.material = wireframeMaterial;
     // Render again with the wireframe material.
-    renderer.render(scene, camera);
+    renderer.render(scene, orbitControl ? debugCamera : camera);
     renderer.autoClear = true;
   } else {
     // Render the scene normally.
-    renderer.render(scene, camera);
+    mask.material = material; //if change wireFrame from true to false
+    renderer.render(scene, orbitControl ? debugCamera : camera);
   }
 
   requestAnimationFrame(() => render(model));
