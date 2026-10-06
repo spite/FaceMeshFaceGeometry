@@ -1,7 +1,7 @@
 import {
   WebGLRenderer,
-  PCFSoftShadowMap,
-  sRGBEncoding,
+  PCFShadowMap,
+  SRGBColorSpace,
   Scene,
   SpotLight,
   Object3D,
@@ -15,11 +15,12 @@ import {
   VideoTexture,
   MeshStandardMaterial,
   Vector3,
-  BoxBufferGeometry,
+  BoxGeometry,
   MeshNormalMaterial,
-} from "../../third_party/three.module.js";
+} from "three";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
 import { OrbitControls } from "../../third_party/OrbitControls.js";
+import { createFaceLandmarker } from "../landmarker.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
@@ -30,8 +31,7 @@ const renderer = new WebGLRenderer({ antialias: true, alpha: true, canvas });
 // renderer.setClearColor(0x202020);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = PCFSoftShadowMap;
-renderer.outputEncoding = sRGBEncoding;
+renderer.shadowMap.type = PCFShadowMap;
 
 const scene = new Scene();
 
@@ -55,8 +55,6 @@ function resize() {
 window.addEventListener("resize", () => {
   resize();
 });
-resize();
-renderer.render(scene, camera);
 
 // Create wireframe material for debugging.
 const wireframeMaterial = new MeshBasicMaterial({
@@ -84,12 +82,14 @@ const amount = 500;
 const instancedFaces = new InstancedMesh(faceGeometry, material, amount);
 scene.add(instancedFaces);
 instancedFaces.receiveShadow = instancedFaces.castShadow = true;
+// The instances move every frame, so skip the cached bounding sphere.
+instancedFaces.frustumCulled = false;
 instancedFaces.scale.setScalar(20);
 
 // Dummy instances for debugging.
 const mat = new MeshNormalMaterial({ wireframe: true });
 const instancedDummy = new InstancedMesh(
-  new BoxBufferGeometry(1, 1, 1),
+  new BoxGeometry(1, 1, 1),
   mat,
   amount
 );
@@ -98,7 +98,8 @@ instancedDummy.receiveShadow = instancedDummy.castShadow = true;
 instancedDummy.scale.setScalar(10);
 
 // Add lights.
-const spotLight = new SpotLight(0xffffbb, 1, 0, Math.PI / 6);
+// A decay of 0 keeps the intensity independent of distance.
+const spotLight = new SpotLight(0xffffde, Math.PI, 0, Math.PI / 6, 0, 0);
 spotLight.position.set(0.5, 0.5, 1);
 spotLight.position.multiplyScalar(200);
 
@@ -114,10 +115,10 @@ spotLight.shadow.bias = -0.005;
 
 scene.add(spotLight);
 
-const hemiLight = new HemisphereLight(0xffffbb, 0x080820, 0.5);
+const hemiLight = new HemisphereLight(0xffffde, 0x323263, 0.5 * Math.PI);
 scene.add(hemiLight);
 
-const ambientLight = new AmbientLight(0x404040, 0.1);
+const ambientLight = new AmbientLight(0x898989, 0.1 * Math.PI);
 scene.add(ambientLight);
 
 // Enable wireframe to debug the mesh on top of the material.
@@ -127,7 +128,15 @@ const dummy = new Object3D();
 // Defines if the source should be flipped horizontally.
 let flipCamera = true;
 
-async function render(model) {
+const r = 7.5 / 2;
+const rr = 2.5 / 2;
+const p = new Vector3();
+const pp = new Vector3();
+const rot = new Matrix4();
+const rot2 = new Matrix4();
+const lookAt = new Matrix4();
+
+async function render(landmarker) {
   // Wait for video to be ready (loadeddata).
   await av.ready();
 
@@ -136,7 +145,7 @@ async function render(model) {
   av.style.opacity = 1;
   av.video.style.display = "none";
 
-  // Resize orthographic camera to video dimensions if necessary.
+  // Update the geometry size if the video dimensions change.
   if (width !== av.video.videoWidth || height !== av.video.videoHeight) {
     const w = av.video.videoWidth;
     const h = av.video.videoHeight;
@@ -146,8 +155,11 @@ async function render(model) {
     faceGeometry.setSize(w, h);
   }
 
-  // Wait for the model to return a face.
-  const faces = await model.estimateFaces(av.video, false, flipCamera);
+  // Detect the face landmarks in the current video frame.
+  const faces = landmarker.detectForVideo(
+    av.video,
+    performance.now()
+  ).faceLandmarks;
 
   status.textContent = "";
 
@@ -158,13 +170,6 @@ async function render(model) {
   }
 
   // Update positions of instances.
-  const r = 7.5 / 2;
-  const rr = 2.5 / 2;
-  const p = new Vector3();
-  const pp = new Vector3();
-  const rot = new Matrix4();
-  const rot2 = new Matrix4();
-  const lookAt = new Matrix4();
   for (let i = 0; i < amount; i++) {
     const f = i + 0.001 * performance.now();
     const a = (f * 2 * Math.PI) / amount;
@@ -182,9 +187,9 @@ async function render(model) {
     lookAt.makeRotationY(-a + Math.PI / 2);
     rot2.makeRotationX(-aa);
     lookAt.multiply(rot2);
-    dummy.position.set(p.x, p.y, p.z);
-    dummy.updateMatrix();
+    dummy.position.copy(p);
     dummy.rotation.setFromRotationMatrix(lookAt);
+    dummy.updateMatrix();
     instancedFaces.setMatrixAt(i, dummy.matrix);
     instancedDummy.setMatrixAt(i, dummy.matrix);
   }
@@ -194,12 +199,12 @@ async function render(model) {
   if (wireframe) {
     // Render the faces.
     renderer.autoClear = true;
-    faces.material = material;
+    instancedFaces.material = material;
     renderer.render(scene, camera);
     // Prevent renderer from clearing the color buffer.
     renderer.autoClear = false;
     renderer.clear(false, true, false);
-    faces.material = wireframeMaterial;
+    instancedFaces.material = wireframeMaterial;
     // Render again with the wireframe material.
     renderer.render(scene, camera);
     renderer.autoClear = true;
@@ -208,19 +213,24 @@ async function render(model) {
     renderer.render(scene, camera);
   }
 
-  requestAnimationFrame(() => render(model));
+  requestAnimationFrame(() => render(landmarker));
 }
 
 // Init the demo, loading dependencies.
 async function init() {
-  await Promise.all([tf.setBackend("webgl"), av.ready()]);
-  const videoTexture = new VideoTexture(av.video);
-  videoTexture.encoding = sRGBEncoding;
-  material.map = videoTexture;
-  status.textContent = "Loading model...";
-  const model = await facemesh.load({ maxFaces: 1 });
-  status.textContent = "Detecting face...";
-  render(model);
+  try {
+    await av.ready();
+    const videoTexture = new VideoTexture(av.video);
+    videoTexture.colorSpace = SRGBColorSpace;
+    material.map = videoTexture;
+    status.textContent = "Loading model...";
+    const landmarker = await createFaceLandmarker({ numFaces: 1 });
+    status.textContent = "Detecting face...";
+    render(landmarker);
+  } catch (e) {
+    status.textContent = e.message;
+    throw e;
+  }
 }
 
 init();

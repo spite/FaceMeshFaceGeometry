@@ -1,23 +1,22 @@
 import {
   WebGLRenderer,
-  PCFSoftShadowMap,
-  sRGBEncoding,
+  PCFShadowMap,
+  SRGBColorSpace,
   Scene,
   SpotLight,
   PerspectiveCamera,
   HemisphereLight,
   AmbientLight,
-  IcosahedronGeometry,
   OrthographicCamera,
   DoubleSide,
   Mesh,
   TextureLoader,
   MeshBasicMaterial,
   MeshStandardMaterial,
-  Texture,
-} from "../../third_party/three.module.js";
+} from "three";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
 import { OrbitControls } from "../../third_party/OrbitControls.js";
+import { createFaceLandmarker } from "../landmarker.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
@@ -28,8 +27,7 @@ const renderer = new WebGLRenderer({ antialias: true, alpha: true, canvas });
 // renderer.setClearColor(0x202020);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = PCFSoftShadowMap;
-renderer.outputEncoding = sRGBEncoding;
+renderer.shadowMap.type = PCFShadowMap;
 
 const scene = new Scene();
 const camera = new OrthographicCamera(1, 1, 1, 1, -1000, 1000);
@@ -65,8 +63,6 @@ function resize() {
 window.addEventListener("resize", () => {
   resize();
 });
-resize();
-renderer.render(scene, camera);
 
 // Create a loader.
 const loader = new TextureLoader();
@@ -99,7 +95,8 @@ scene.add(mask);
 mask.receiveShadow = mask.castShadow = true;
 
 // Add lights.
-const spotLight = new SpotLight(0xffffff, 0.5);
+// A decay of 0 keeps the intensity independent of distance.
+const spotLight = new SpotLight(0xffffff, 0.5 * Math.PI, 0, Math.PI / 3, 0, 0);
 spotLight.position.set(0.5, 0.5, 1);
 spotLight.position.multiplyScalar(400);
 scene.add(spotLight);
@@ -112,16 +109,14 @@ spotLight.shadow.mapSize.height = 1024;
 spotLight.shadow.camera.near = 200;
 spotLight.shadow.camera.far = 800;
 
-spotLight.shadow.camera.fov = 40;
-
 spotLight.shadow.bias = -0.005;
 
 scene.add(spotLight);
 
-const hemiLight = new HemisphereLight(0xffffbb, 0x080820, 0.25);
+const hemiLight = new HemisphereLight(0xffffde, 0x323263, 0.25 * Math.PI);
 //scene.add(hemiLight);
 
-const ambientLight = new AmbientLight(0x404040, 0.5);
+const ambientLight = new AmbientLight(0x898989, 0.5 * Math.PI);
 scene.add(ambientLight);
 
 // Enable wireframe to debug the mesh on top of the material.
@@ -130,9 +125,8 @@ let wireframe = false;
 // Defines if the source should be flipped horizontally.
 let flipCamera = true;
 
-let referenceFace;
 
-async function render(model) {
+async function render(landmarker) {
   // Wait for video to be ready (loadeddata).
   await av.ready();
 
@@ -154,8 +148,11 @@ async function render(model) {
     faceGeometry.setSize(w, h);
   }
 
-  // Wait for the model to return a face.
-  const faces = await model.estimateFaces(av.video, false, flipCamera);
+  // Detect the face landmarks in the current video frame.
+  const faces = landmarker.detectForVideo(
+    av.video,
+    performance.now()
+  ).faceLandmarks;
 
   av.style.opacity = 1;
 
@@ -163,15 +160,6 @@ async function render(model) {
   if (faces.length > 0) {
     // Update face mesh geometry with new data.
     faceGeometry.update(faces[0], flipCamera);
-
-    // Use the reference face texture coordinates for this face geometry.
-    for (let j = 0; j < 468; j++) {
-      let x = referenceFace.face.scaledMesh[j][0];
-      let y = referenceFace.face.scaledMesh[j][1];
-      faceGeometry.uvs[j * 2] = x;
-      faceGeometry.uvs[j * 2 + 1] = 1 - y;
-    }
-    faceGeometry.getAttribute("uv").needsUpdate = true;
   }
 
   if (wireframe) {
@@ -190,11 +178,11 @@ async function render(model) {
     renderer.render(scene, camera);
   }
 
-  requestAnimationFrame(() => render(model));
+  requestAnimationFrame(() => render(landmarker));
 }
 
 // For debugging purposes, it shows the detected geometry.
-function draw(image, face) {
+function draw(image, landmarks) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   const w = image.naturalWidth;
@@ -203,11 +191,9 @@ function draw(image, face) {
   canvas.height = h;
   ctx.fillStyle = "#ff00ff";
   ctx.drawImage(image, 0, 0);
-  for (const p of face.scaledMesh) {
-    const x = p[0] * w;
-    const y = p[1] * h;
+  for (const p of landmarks) {
     ctx.beginPath();
-    ctx.arc(x, y, 4, 0, 2 * Math.PI);
+    ctx.arc(p.x * w, p.y * h, 4, 0, 2 * Math.PI);
     ctx.fill();
   }
   canvas.style.zIndex = 100;
@@ -216,74 +202,69 @@ function draw(image, face) {
   document.body.append(canvas);
 }
 
-// Tries to find a face in an image so we can texure map it into the life feed face.
-async function getFace(model, texture) {
-  const faces = await model.estimateFaces(texture.image);
+// Finds a face in an image and uses it to texture map the live feed face.
+function setReferenceFace(imageLandmarker, texture) {
+  const faces = imageLandmarker.detect(texture.image).faceLandmarks;
   if (!faces.length) {
-    status.textContent = "No face detected! Try another image.";
-    throw new Error("No face detected!");
+    throw new Error("No face detected! Try another image.");
   }
-  // Get the found face and turn into texture coordinates.
-  const face = faces[0];
-  for (let j = 0; j < face.scaledMesh.length; j++) {
-    face.scaledMesh[j][0] /= texture.image.naturalWidth;
-    face.scaledMesh[j][1] /= texture.image.naturalHeight;
+  // The normalized landmarks of the reference face are its texture coordinates.
+  const landmarks = faces[0];
+  for (let j = 0; j < 468; j++) {
+    faceGeometry.uvs[j * 2] = landmarks[j].x;
+    faceGeometry.uvs[j * 2 + 1] = 1 - landmarks[j].y;
   }
-  return { texture, face: faces[0] };
+  faceGeometry.getAttribute("uv").needsUpdate = true;
+  // draw(texture.image, landmarks);
+  texture.colorSpace = SRGBColorSpace;
+  if (material.map) {
+    material.map.dispose();
+  }
+  material.map = texture;
+  material.needsUpdate = true;
 }
 
-// We need a separate model because they can't be reused (?).
-let modelRef;
+let imageLandmarker;
 
 // Init the demo, loading dependencies.
 async function init() {
-  await Promise.all([tf.setBackend("webgl"), av.ready()]);
-  status.textContent = "Loading model...";
-  let texture, model;
-  [texture, model, modelRef] = await Promise.all([
-    loader.loadAsync("../../assets/ao.jpg"),
-    facemesh.load({ maxFaces: 1 }),
-    facemesh.load({ maxFaces: 1 }),
-  ]);
   try {
-    referenceFace = await getFace(modelRef, texture);
+    await av.ready();
+    status.textContent = "Loading model...";
+    let texture, landmarker;
+    [texture, landmarker, imageLandmarker] = await Promise.all([
+      loader.loadAsync("../../assets/ao.jpg"),
+      createFaceLandmarker({ numFaces: 1 }),
+      createFaceLandmarker({ numFaces: 1, runningMode: "IMAGE" }),
+    ]);
+    setReferenceFace(imageLandmarker, texture);
+    status.textContent = "Detecting face...";
+    await render(landmarker);
+    status.textContent = "Drop an image into the page.";
   } catch (e) {
-    console.error(e);
-    return;
+    status.textContent = e.message;
+    throw e;
   }
-  material.map = referenceFace.texture;
-  status.textContent = "Detecting face...";
-  await render(model);
-  status.textContent = "Drop an image into the page.";
 }
 
 // Handles dropping an image.
 async function dropHandler(ev) {
   ev.preventDefault();
+  const file = [...ev.dataTransfer.files].find((f) =>
+    f.type.startsWith("image/")
+  );
+  if (!file || !imageLandmarker) return;
   status.textContent = "Analysing...";
-
-  if (ev.dataTransfer.items) {
-    for (let item of ev.dataTransfer.items) {
-      if (item.kind === "file") {
-        var file = item.getAsFile();
-        modelRef = await facemesh.load({ maxFaces: 1 });
-        const url = URL.createObjectURL(file);
-        let texture = await loader.loadAsync(url);
-        try {
-          referenceFace = await getFace(modelRef, texture);
-        } catch (e) {
-          console.error(e);
-          return;
-        }
-        // draw(texture.image, referenceFace.face);
-        material.map = referenceFace.texture;
-        material.needsUpdate = true;
-        status.textContent = "";
-      }
-    }
-  } else {
-    for (let file of ev.dataTransfer.files) {
-    }
+  const url = URL.createObjectURL(file);
+  try {
+    const texture = await loader.loadAsync(url);
+    setReferenceFace(imageLandmarker, texture);
+    status.textContent = "";
+  } catch (e) {
+    status.textContent = e.message;
+    console.error(e);
+  } finally {
+    URL.revokeObjectURL(url);
   }
 }
 

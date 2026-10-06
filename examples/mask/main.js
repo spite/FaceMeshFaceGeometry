@@ -1,7 +1,7 @@
 import {
   WebGLRenderer,
-  PCFSoftShadowMap,
-  sRGBEncoding,
+  PCFShadowMap,
+  SRGBColorSpace,
   Scene,
   SpotLight,
   PerspectiveCamera,
@@ -14,9 +14,10 @@ import {
   MeshBasicMaterial,
   TextureLoader,
   MeshStandardMaterial,
-} from "../../third_party/three.module.js";
+} from "three";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
 import { OrbitControls } from "../../third_party/OrbitControls.js";
+import { createFaceLandmarker } from "../landmarker.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
@@ -27,8 +28,7 @@ const renderer = new WebGLRenderer({ antialias: true, alpha: true, canvas });
 // renderer.setClearColor(0x202020);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = PCFSoftShadowMap;
-renderer.outputEncoding = sRGBEncoding;
+renderer.shadowMap.type = PCFShadowMap;
 
 const scene = new Scene();
 const camera = new OrthographicCamera(1, 1, 1, 1, -1000, 1000);
@@ -64,13 +64,13 @@ function resize() {
 window.addEventListener("resize", () => {
   resize();
 });
-resize();
-renderer.render(scene, camera);
 
 // Load textures for mask material.
-const colorTexture = new TextureLoader().load("../../assets/mesh_map.jpg");
-const aoTexture = new TextureLoader().load("../../assets/ao.jpg");
-const alphaTexture = new TextureLoader().load("../../assets/mask.png");
+const loader = new TextureLoader();
+const colorTexture = loader.load("../../assets/mesh_map.jpg");
+colorTexture.colorSpace = SRGBColorSpace;
+const aoTexture = loader.load("../../assets/ao.jpg");
+const alphaTexture = loader.load("../../assets/mask.png");
 
 // Create wireframe material for debugging.
 const wireframeMaterial = new MeshBasicMaterial({
@@ -80,7 +80,7 @@ const wireframeMaterial = new MeshBasicMaterial({
 
 // Create material for mask.
 const material = new MeshStandardMaterial({
-  color: 0x808080,
+  color: 0xbcbcbc,
   roughness: 0.8,
   metalness: 0.1,
   alphaMap: alphaTexture,
@@ -99,11 +99,10 @@ const mask = new Mesh(faceGeometry, material);
 scene.add(mask);
 mask.receiveShadow = mask.castShadow = true;
 
-// Add lights.
-const spotLight = new SpotLight(0xffffbb, 1);
+// Add lights. A decay of 0 keeps the intensity independent of distance.
+const spotLight = new SpotLight(0xffffde, Math.PI, 0, Math.PI / 3, 0, 0);
 spotLight.position.set(0.5, 0.5, 1);
 spotLight.position.multiplyScalar(400);
-scene.add(spotLight);
 
 spotLight.castShadow = true;
 
@@ -113,21 +112,19 @@ spotLight.shadow.mapSize.height = 1024;
 spotLight.shadow.camera.near = 200;
 spotLight.shadow.camera.far = 800;
 
-spotLight.shadow.camera.fov = 40;
-
 spotLight.shadow.bias = -0.001125;
 
 scene.add(spotLight);
 
-const hemiLight = new HemisphereLight(0xffffbb, 0x080820, 0.25);
+const hemiLight = new HemisphereLight(0xffffde, 0x323263, 0.25 * Math.PI);
 scene.add(hemiLight);
 
-const ambientLight = new AmbientLight(0x404040, 0.25);
+const ambientLight = new AmbientLight(0x898989, 0.25 * Math.PI);
 scene.add(ambientLight);
 
 // Create a red material for the nose.
 const noseMaterial = new MeshStandardMaterial({
-  color: 0xff2010,
+  color: 0xff6347,
   roughness: 0.4,
   metalness: 0.1,
   transparent: true,
@@ -144,7 +141,7 @@ let wireframe = false;
 // Defines if the source should be flipped horizontally.
 let flipCamera = true;
 
-async function render(model) {
+async function render(landmarker) {
   // Wait for video to be ready (loadeddata).
   await av.ready();
 
@@ -166,8 +163,11 @@ async function render(model) {
     faceGeometry.setSize(w, h);
   }
 
-  // Wait for the model to return a face.
-  const faces = await model.estimateFaces(av.video, false, flipCamera);
+  // Detect the face landmarks in the current video frame.
+  const faces = landmarker.detectForVideo(
+    av.video,
+    performance.now()
+  ).faceLandmarks;
 
   av.style.opacity = 1;
   status.textContent = "";
@@ -199,16 +199,21 @@ async function render(model) {
     renderer.render(scene, camera);
   }
 
-  requestAnimationFrame(() => render(model));
+  requestAnimationFrame(() => render(landmarker));
 }
 
 // Init the demo, loading dependencies.
 async function init() {
-  await Promise.all([tf.setBackend("webgl"), av.ready()]);
-  status.textContent = "Loading model...";
-  const model = await facemesh.load({ maxFaces: 1 });
-  status.textContent = "Detecting face...";
-  render(model);
+  try {
+    await av.ready();
+    status.textContent = "Loading model...";
+    const landmarker = await createFaceLandmarker({ numFaces: 1 });
+    status.textContent = "Detecting face...";
+    render(landmarker);
+  } catch (e) {
+    status.textContent = e.message;
+    throw e;
+  }
 }
 
 init();

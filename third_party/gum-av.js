@@ -80,76 +80,87 @@ class GumAudioVideo extends HTMLElement {
       this.currentVideoInput =
         (this.currentVideoInput + 1) % this.devices.videoinput.length;
       this.invalidateVideoSource();
-      this.getMedia(this.devices.videoinput[this.currentVideoInput]);
+      this.getMedia(this.devices.videoinput[this.currentVideoInput].deviceId);
     });
 
     this.init();
   }
 
   async init() {
-    await this.enumerateDevices();
-    if (this.devices.videoinput.length === 1) {
-      this.nextDeviceButton.style.display = "none";
-      this.currentVideoInput = 0;
-      this.invalidateVideoSource();
-      this.getMedia(this.devices.videoinput[this.currentVideoInput]);
-    } else {
-      this.nextDeviceButton.style.display = "block";
-      this.currentVideoInput = 0;
-      this.invalidateVideoSource();
-      this.getMedia(this.devices.videoinput[this.currentVideoInput]);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      this.fail(
+        new Error(
+          "Can't access the camera. Make sure the page is served over HTTPS (or localhost), and the browser supports getUserMedia."
+        )
+      );
+      return;
     }
+    // Labels and device ids are only exposed once permission has been granted.
+    await this.getMedia();
+    await this.enumerateDevices();
+    const track = this.video && this.video.srcObject.getVideoTracks()[0];
+    const deviceId = track && track.getSettings().deviceId;
+    this.currentVideoInput = Math.max(
+      0,
+      this.devices.videoinput.findIndex((d) => d.deviceId === deviceId)
+    );
+    this.nextDeviceButton.style.display =
+      this.devices.videoinput.length > 1 ? "block" : "none";
   }
 
+  // Resolves once the current video source has data, following device switches.
   async ready() {
-    await this.videoLoadedData;
+    let pending;
+    do {
+      pending = this.videoLoadedData;
+      await pending;
+    } while (pending !== this.videoLoadedData);
   }
 
   async enumerateDevices() {
-    if (!navigator.mediaDevices) {
-      this.deviceNameLabel.textContent = `Can't enumerate devices. Make sure the page is HTTPS, and the browser support getUserMedia.`;
-      return;
-    }
+    this.devices = { audioinput: [], audiooutput: [], videoinput: [] };
     const devices = await navigator.mediaDevices.enumerateDevices();
-
     for (const device of devices) {
-      let name;
-      switch (device.kind) {
-        case "audioinput":
-          name = device.label || "Microphone";
-          break;
-        case "audiooutput":
-          name = device.label || "Speakers";
-          break;
-        case "videoinput":
-          name = device.label || "Camera";
-          break;
+      if (this.devices[device.kind]) {
+        this.devices[device.kind].push(device);
       }
-      this.devices[device.kind].push(device);
     }
   }
 
   invalidateVideoSource() {
+    if (this.videoLoadedData && !this.loaded) return;
+    this.loaded = false;
     this.videoLoadedData = new Promise((resolve, reject) => {
-      this.resolveLoadedData = resolve;
+      this.resolveLoadedData = () => {
+        this.loaded = true;
+        resolve();
+      };
       this.rejectLoadedData = reject;
     });
   }
 
-  async getMedia(device) {
+  fail(err) {
+    this.deviceNameLabel.textContent = err.message;
+    this.rejectLoadedData(err);
+  }
+
+  async getMedia(deviceId) {
     const constraints = {
-      video: { deviceId: device.deviceId, width: 500, height: 500 },
+      video: {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        width: 500,
+        height: 500,
+      },
     };
     this.deviceNameLabel.textContent = "Connecting...";
-    let stream = null;
 
     try {
-      stream = await navigator.mediaDevices.getUserMedia(constraints);
-      this.deviceNameLabel.textContent = device.label;
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       this.createVideoElement();
       this.video.srcObject = stream;
+      this.deviceNameLabel.textContent = stream.getVideoTracks()[0].label;
     } catch (err) {
-      this.deviceNameLabel.textContent = `${err.name} ${err.message}`;
+      this.fail(new Error(`Can't access the camera: ${err.name} ${err.message}`));
     }
   }
 
@@ -162,7 +173,8 @@ class GumAudioVideo extends HTMLElement {
     if (!this.video) {
       this.video = document.createElement("video");
       this.video.autoplay = true;
-      this.video.playsinline = true;
+      this.video.muted = true;
+      this.video.playsInline = true;
       this.video.addEventListener("loadeddata", () => {
         this.resolveLoadedData();
       });

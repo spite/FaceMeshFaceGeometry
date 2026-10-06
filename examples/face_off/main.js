@@ -1,24 +1,17 @@
 import {
   WebGLRenderer,
-  PCFSoftShadowMap,
-  sRGBEncoding,
+  SRGBColorSpace,
   Scene,
-  SpotLight,
   PerspectiveCamera,
-  HemisphereLight,
-  AmbientLight,
   OrthographicCamera,
   DoubleSide,
   Mesh,
-  TorusBufferGeometry,
-  Matrix4,
   MeshBasicMaterial,
   VideoTexture,
-  BoxBufferGeometry,
-  MeshStandardMaterial,
-} from "../../third_party/three.module.js";
+} from "three";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
 import { OrbitControls } from "../../third_party/OrbitControls.js";
+import { createFaceLandmarker } from "../landmarker.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
@@ -28,7 +21,6 @@ const status = document.querySelector("#status");
 const renderer = new WebGLRenderer({ antialias: true, alpha: true, canvas });
 // renderer.setClearColor(0x202020);
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.outputEncoding = sRGBEncoding;
 
 const scene = new Scene();
 const camera = new OrthographicCamera(1, 1, 1, 1, -1000, 1000);
@@ -64,8 +56,6 @@ function resize() {
 window.addEventListener("resize", () => {
   resize();
 });
-resize();
-renderer.render(scene, camera);
 
 // Create wireframe material for debugging.
 const wireframeMaterial = new MeshBasicMaterial({
@@ -97,7 +87,7 @@ let wireframe = false;
 // Defines if the source should be flipped horizontally.
 let flipCamera = true;
 
-async function render(model) {
+async function render(landmarker) {
   // Wait for video to be ready (loadeddata).
   await av.ready();
 
@@ -121,8 +111,11 @@ async function render(model) {
     faceGeometry2.setSize(w, h);
   }
 
-  // Wait for the model to return a face.
-  const faces = await model.estimateFaces(av.video, false, flipCamera);
+  // Detect the face landmarks in the current video frame.
+  const faces = landmarker.detectForVideo(
+    av.video,
+    performance.now()
+  ).faceLandmarks;
 
   status.textContent = "";
 
@@ -160,19 +153,24 @@ async function render(model) {
     renderer.render(scene, camera);
   }
 
-  requestAnimationFrame(() => render(model));
+  requestAnimationFrame(() => render(landmarker));
 }
 
 // Init the demo, loading dependencies.
 async function init() {
-  await Promise.all([tf.setBackend("webgl"), av.ready()]);
-  const videoTexture = new VideoTexture(av.video);
-  videoTexture.encoding = sRGBEncoding;
-  material.map = videoTexture;
-  status.textContent = "Loading model...";
-  const model = await facemesh.load({ maxFaces: 2 });
-  status.textContent = "Detecting face...";
-  render(model);
+  try {
+    await av.ready();
+    const videoTexture = new VideoTexture(av.video);
+    videoTexture.colorSpace = SRGBColorSpace;
+    material.map = videoTexture;
+    status.textContent = "Loading model...";
+    const landmarker = await createFaceLandmarker({ numFaces: 2 });
+    status.textContent = "Detecting face...";
+    render(landmarker);
+  } catch (e) {
+    status.textContent = e.message;
+    throw e;
+  }
 }
 
 init();
