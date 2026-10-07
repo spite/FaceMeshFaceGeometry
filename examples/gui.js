@@ -14,9 +14,13 @@ document.head.append(stylesheet);
 function createGUI(title = "Settings") {
   const el = document.createElement("div");
   el.style.cssText =
-    "position: absolute; top: 10px; right: 10px; width: 280px; z-index: 2";
+    "position: absolute; top: 10px; right: 10px; width: min(320px, calc(100vw - 20px)); z-index: 2";
   document.body.append(el);
-  return new GUI(title, el);
+  const gui = new GUI(title, el);
+  // A narrower label column than guspira's 140px, so sliders and choices have room.
+  gui.container.style.setProperty("--gui-label-width", "110px");
+  gui.container.style.setProperty("--gui-padding", "16px");
+  return gui;
 }
 
 // Adds a "Mirror video" toggle bound to a <gum-av>. It follows the camera, on for
