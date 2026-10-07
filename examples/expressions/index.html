@@ -56,6 +56,15 @@
         margin: 0.4em 0 0;
       }
 
+      #info nav {
+        margin-top: 0.4em;
+      }
+
+      #info nav a {
+        color: white;
+        pointer-events: auto;
+      }
+
       #status:empty {
         display: none;
       }
@@ -73,6 +82,10 @@
     <header id="info">
       <h1>Expressions</h1>
       <p>MediaPipe&#x27;s blendshapes, scores for 51 facial expressions, plotted live in the panel. Open your mouth to blow bubbles, and pucker for bigger ones.</p>
+      <nav>
+        <a href="../../">← All examples</a> ·
+        <a href="https://github.com/spite/FaceMeshFaceGeometry/tree/master/examples/expressions">Source on GitHub</a>
+      </nav>
       <p id="status">Loading...</p>
     </header>
     <div id="container">

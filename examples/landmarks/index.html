@@ -56,6 +56,15 @@
         margin: 0.4em 0 0;
       }
 
+      #info nav {
+        margin-top: 0.4em;
+      }
+
+      #info nav a {
+        color: white;
+        pointer-events: auto;
+      }
+
       #status:empty {
         display: none;
       }
@@ -101,6 +110,10 @@
     <header id="info">
       <h1>Face landmarks</h1>
       <p>Labels follow 24 parts of the face, using the landmarks in video pixels with an orthographic camera. A bit of 2D physics keeps the labels apart and lets them trail the face.</p>
+      <nav>
+        <a href="../../">← All examples</a> ·
+        <a href="https://github.com/spite/FaceMeshFaceGeometry/tree/master/examples/landmarks">Source on GitHub</a>
+      </nav>
       <p id="status">Loading...</p>
     </header>
     <div id="container">

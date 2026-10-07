@@ -56,6 +56,15 @@
         margin: 0.4em 0 0;
       }
 
+      #info nav {
+        margin-top: 0.4em;
+      }
+
+      #info nav a {
+        color: white;
+        pointer-events: auto;
+      }
+
       #status:empty {
         display: none;
       }
@@ -73,6 +82,10 @@
     <header id="info">
       <h1>Glasses and head pose</h1>
       <p>Metric mode: the mesh is in centimeters and comes with the head pose. Glasses and a clown nose, modelled around a standard face, follow the head in perspective, and an invisible face and head hide what&#x27;s behind them. Set Face to Mask to see the face.</p>
+      <nav>
+        <a href="../../">← All examples</a> ·
+        <a href="https://github.com/spite/FaceMeshFaceGeometry/tree/master/examples/glasses">Source on GitHub</a>
+      </nav>
       <p id="status">Loading...</p>
     </header>
     <div id="container">
