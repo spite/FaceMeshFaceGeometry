@@ -9,12 +9,18 @@ const MODEL_PATH =
   "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
 
 // Creates a MediaPipe FaceLandmarker, falling back to the CPU without WebGL2.
-async function createFaceLandmarker({ numFaces = 1, runningMode = "VIDEO" } = {}) {
+// Other FaceLandmarkerOptions, like outputFaceBlendshapes, are passed through.
+async function createFaceLandmarker({
+  numFaces = 1,
+  runningMode = "VIDEO",
+  ...rest
+} = {}) {
   const fileset = await FilesetResolver.forVisionTasks(WASM_PATH);
   const options = (delegate) => ({
     baseOptions: { modelAssetPath: MODEL_PATH, delegate },
     runningMode,
     numFaces,
+    ...rest,
   });
   try {
     return await FaceLandmarker.createFromOptions(fileset, options("GPU"));

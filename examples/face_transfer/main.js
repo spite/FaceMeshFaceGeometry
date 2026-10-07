@@ -13,10 +13,12 @@ import {
   TextureLoader,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  BufferAttribute,
 } from "three";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
 import { OrbitControls } from "../../third_party/OrbitControls.js";
 import { createFaceLandmarker } from "../landmarker.js";
+import { createGUI, addMirrorToggle, signal, effect } from "../gui.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
@@ -89,6 +91,12 @@ const material = new MeshStandardMaterial({
 // Create a new geometry helper.
 const faceGeometry = new FaceMeshFaceGeometry();
 
+// The alpha mask is laid out on the canonical texture coordinates, but the first UV set
+// follows the reference face, so keep the canonical ones as a second set for it.
+faceGeometry.setAttribute("uv1", new BufferAttribute(faceGeometry.uvs.slice(), 2));
+const alphaTexture = loader.load("../../assets/mask.png");
+alphaTexture.channel = 1;
+
 // Create mask mesh.
 const mask = new Mesh(faceGeometry, material);
 scene.add(mask);
@@ -119,19 +127,26 @@ const hemiLight = new HemisphereLight(0xffffde, 0x323263, 0.25 * Math.PI);
 const ambientLight = new AmbientLight(0x898989, 0.5 * Math.PI);
 scene.add(ambientLight);
 
-// Enable wireframe to debug the mesh on top of the material.
-let wireframe = false;
 
-// Defines if the source should be flipped horizontally.
-let flipCamera = true;
+const wireframe = signal(false);
+
+const gui = createGUI();
+gui.addCheckbox("Wireframe", wireframe);
+const flipCamera = addMirrorToggle(gui, av);
+
+// Fade the edges of the face into the video with the alpha mask.
+const maskAlpha = signal(false);
+gui.addCheckbox("Mask alpha", maskAlpha);
+effect(() => {
+  material.alphaMap = maskAlpha() ? alphaTexture : null;
+  material.needsUpdate = true;
+});
 
 
 async function render(landmarker) {
   // Wait for video to be ready (loadeddata).
   await av.ready();
 
-  // Flip video element horizontally if necessary.
-  av.video.style.transform = flipCamera ? "scaleX(-1)" : "scaleX(1)";
 
   // Resize orthographic camera to video dimensions if necessary.
   if (width !== av.video.videoWidth || height !== av.video.videoHeight) {
@@ -159,10 +174,10 @@ async function render(landmarker) {
   // There's at least one face.
   if (faces.length > 0) {
     // Update face mesh geometry with new data.
-    faceGeometry.update(faces[0], flipCamera);
+    faceGeometry.update(faces[0], flipCamera());
   }
 
-  if (wireframe) {
+  if (wireframe()) {
     // Render the mask.
     renderer.render(scene, camera);
     // Prevent renderer from clearing the color buffer.
@@ -226,21 +241,73 @@ function setReferenceFace(imageLandmarker, texture) {
 
 let imageLandmarker;
 
+// Reference images to pick from in the panel.
+const REFERENCES = [
+  { label: "Face 1", url: "../../assets/faces/face-1.jpg" },
+  { label: "Face 2", url: "../../assets/faces/face-2.jpg" },
+  { label: "Face 3", url: "../../assets/faces/face-3.jpg" },
+  { label: "Face 4", url: "../../assets/faces/face-4.jpg" },
+  { label: "Mask", url: "../../assets/ao.jpg" },
+];
+
+const picker = document.createElement("div");
+picker.style.cssText =
+  "display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%";
+const thumbnails = REFERENCES.map((reference) => {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.title = reference.label;
+  button.style.cssText =
+    "height: auto; padding: 0; border: 2px solid transparent; border-radius: 6px; background: none; color: inherit; font: inherit; font-size: 11px; cursor: pointer; overflow: hidden";
+  const img = document.createElement("img");
+  img.src = reference.url;
+  img.alt = reference.label;
+  img.style.cssText = "width: 100%; aspect-ratio: 1; object-fit: cover; display: block";
+  const caption = document.createElement("span");
+  caption.textContent = reference.label;
+  caption.style.cssText = "display: block; padding: 2px 0";
+  button.append(img, caption);
+  button.addEventListener("click", () => useReference(reference.url, button));
+  picker.append(button);
+  return button;
+});
+gui.addElement(picker);
+
+function select(button) {
+  for (const thumbnail of thumbnails) {
+    thumbnail.style.borderColor = thumbnail === button ? "white" : "transparent";
+  }
+}
+
+// Loads an image and maps its face onto the live one. `button` is the thumbnail it came from, if any.
+async function useReference(url, button) {
+  if (!imageLandmarker) return;
+  status.textContent = "Analysing...";
+  try {
+    const texture = await loader.loadAsync(url);
+    setReferenceFace(imageLandmarker, texture);
+    select(button);
+    status.textContent = "";
+  } catch (e) {
+    status.textContent = e.message;
+    console.error(e);
+  }
+}
+
 // Init the demo, loading dependencies.
 async function init() {
   try {
     await av.ready();
     status.textContent = "Loading model...";
-    let texture, landmarker;
-    [texture, landmarker, imageLandmarker] = await Promise.all([
-      loader.loadAsync("../../assets/ao.jpg"),
+    let landmarker;
+    [landmarker, imageLandmarker] = await Promise.all([
       createFaceLandmarker({ numFaces: 1 }),
       createFaceLandmarker({ numFaces: 1, runningMode: "IMAGE" }),
     ]);
-    setReferenceFace(imageLandmarker, texture);
+    await useReference(REFERENCES[0].url, thumbnails[0]);
     status.textContent = "Detecting face...";
     await render(landmarker);
-    status.textContent = "Drop an image into the page.";
+    status.textContent = "";
   } catch (e) {
     status.textContent = e.message;
     throw e;
@@ -253,19 +320,10 @@ async function dropHandler(ev) {
   const file = [...ev.dataTransfer.files].find((f) =>
     f.type.startsWith("image/")
   );
-  if (!file || !imageLandmarker) return;
-  status.textContent = "Analysing...";
+  if (!file) return;
   const url = URL.createObjectURL(file);
-  try {
-    const texture = await loader.loadAsync(url);
-    setReferenceFace(imageLandmarker, texture);
-    status.textContent = "";
-  } catch (e) {
-    status.textContent = e.message;
-    console.error(e);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+  await useReference(url, null);
+  URL.revokeObjectURL(url);
 }
 
 function dragOverHandler(ev) {

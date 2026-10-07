@@ -3,14 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Face transfer · FaceMeshFaceGeometry</title>
+    <title>Glasses and head pose · FaceMeshFaceGeometry</title>
     <style>
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-
       gum-av,
       canvas {
         position: absolute;
@@ -77,8 +71,8 @@
 
   <body>
     <header id="info">
-      <h1>Face transfer</h1>
-      <p>A face found in a still image is mapped onto yours. Pick one in the panel, or drop a photo with a face onto the page.</p>
+      <h1>Glasses and head pose</h1>
+      <p>Metric mode: the mesh is in centimeters and comes with the head pose. Glasses and a clown nose, modelled around a standard face, follow the head in perspective, and an invisible face and head hide what&#x27;s behind them. Set Face to Mask to see the face.</p>
       <p id="status">Loading...</p>
     </header>
     <div id="container">

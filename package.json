@@ -1,0 +1,55 @@
+{
+  "name": "face-mesh-face-geometry",
+  "version": "1.0.0",
+  "description": "Three.js geometry for MediaPipe's face mesh: the 468 face landmarks as a BufferGeometry, with texture coordinates, normals, head pose, blendshapes and irises.",
+  "type": "module",
+  "main": "./js/face.js",
+  "module": "./js/face.js",
+  "types": "./js/face.d.ts",
+  "exports": {
+    ".": {
+      "types": "./js/face.d.ts",
+      "default": "./js/face.js"
+    },
+    "./geometry": {
+      "types": "./js/geometry.d.ts",
+      "default": "./js/geometry.js"
+    },
+    "./gum-av": "./third_party/gum-av.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "js",
+    "third_party/gum-av.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "./third_party/gum-av.js"
+  ],
+  "peerDependencies": {
+    "three": ">=0.150.0"
+  },
+  "scripts": {
+    "start": "npx --yes serve ."
+  },
+  "keywords": [
+    "three",
+    "threejs",
+    "mediapipe",
+    "face-mesh",
+    "face-landmarks",
+    "face-tracking",
+    "blendshapes",
+    "webcam",
+    "ar"
+  ],
+  "author": "Jaume Sanchez <the.spite@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spite/FaceMeshFaceGeometry.git"
+  },
+  "homepage": "https://spite.github.io/FaceMeshFaceGeometry/",
+  "bugs": "https://github.com/spite/FaceMeshFaceGeometry/issues"
+}

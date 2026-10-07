@@ -3,14 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Face transfer · FaceMeshFaceGeometry</title>
+    <title>Face landmarks · FaceMeshFaceGeometry</title>
     <style>
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-
       gum-av,
       canvas {
         position: absolute;
@@ -72,18 +66,53 @@
         opacity: 0;
         transition: opacity 1s ease-out;
       }
+      #annotations {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+        font: bold 12px roboto, sans-serif;
+      }
+
+      #annotations line {
+        stroke: white;
+        stroke-width: 1.5;
+      }
+
+      #annotations line.outline {
+        stroke: black;
+        stroke-width: 4;
+      }
+
+      #annotations text {
+        fill: white;
+        stroke: black;
+        stroke-width: 4px;
+        paint-order: stroke;
+        dominant-baseline: middle;
+      }
     </style>
   </head>
 
   <body>
     <header id="info">
-      <h1>Face transfer</h1>
-      <p>A face found in a still image is mapped onto yours. Pick one in the panel, or drop a photo with a face onto the page.</p>
+      <h1>Face landmarks</h1>
+      <p>Labels follow 24 parts of the face, using the landmarks in video pixels with an orthographic camera. A bit of 2D physics keeps the labels apart and lets them trail the face.</p>
       <p id="status">Loading...</p>
     </header>
     <div id="container">
       <gum-av></gum-av>
       <canvas id="canvas"></canvas>
+      <svg id="annotations">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="white" stroke="black" stroke-width="1.2" stroke-linejoin="round" />
+          </marker>
+        </defs>
+      </svg>
     </div>
     <script type="importmap">
       { "imports": { "three": "../../third_party/three.module.js" } }

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FaceMeshFaceGeometry</title>
+    <meta
+      name="description"
+      content="Three.js geometry for MediaPipe's face mesh: the 468 face landmarks as a BufferGeometry, with texture coordinates, normals, head pose, blendshapes and irises."
+    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.12.0/styles/github-dark.min.css" />
+    <style>
+      :root {
+        --bg: #0d0d0f;
+        --panel: #17171a;
+        --border: #2a2a2f;
+        --fg: #e8e8ea;
+        --muted: #9a9aa2;
+        --accent: #ff6347;
+        --code-bg: #111114;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+
+      a {
+        color: var(--fg);
+      }
+
+      main {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 16px 64px;
+      }
+
+      header {
+        padding: 64px 0 32px;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 5vw, 3.2rem);
+        line-height: 1.1;
+        margin: 0 0 16px;
+        letter-spacing: -0.02em;
+      }
+
+      .lead {
+        font-size: 1.2rem;
+        color: var(--muted);
+        max-width: 46em;
+        margin: 0 0 24px;
+      }
+
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .links a {
+        text-decoration: none;
+        padding: 8px 16px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+      }
+
+      .links a.primary {
+        background: var(--fg);
+        color: var(--bg);
+        border-color: var(--fg);
+      }
+
+      h2 {
+        font-size: 1.5rem;
+        margin: 56px 0 16px;
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 16px;
+      }
+
+      .feature {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px 20px;
+      }
+
+      .feature h3 {
+        margin: 0 0 6px;
+        font-size: 1rem;
+      }
+
+      .feature p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      code {
+        font-family: ui-monospace, "SF Mono", Consolas, monospace;
+        font-size: 0.9em;
+      }
+
+      pre code.hljs {
+        padding: 0;
+        background: none;
+      }
+
+      pre {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px 20px;
+        overflow-x: auto;
+        line-height: 1.5;
+      }
+
+      .examples {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+      }
+
+      .example {
+        display: flex;
+        flex-direction: column;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+        text-decoration: none;
+        transition: border-color 0.15s;
+      }
+
+      .example:hover {
+        border-color: var(--muted);
+      }
+
+      .example img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+        background: #000;
+      }
+
+      .example div {
+        padding: 14px 18px 18px;
+      }
+
+      .example h3 {
+        margin: 0 0 6px;
+        font-size: 1.05rem;
+      }
+
+      .example p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .tag {
+        display: inline-block;
+        font-size: 0.75rem;
+        color: var(--accent);
+        border: 1px solid currentColor;
+        border-radius: 4px;
+        padding: 0 6px;
+        margin-left: 6px;
+        vertical-align: 2px;
+      }
+
+      .note {
+        color: var(--muted);
+      }
+
+      footer {
+        margin-top: 64px;
+        padding-top: 24px;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>FaceMeshFaceGeometry</h1>
+        <p class="lead">
+          A three.js <code>BufferGeometry</code> for the face mesh from
+          <a href="https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker">MediaPipe's Face Landmarker</a>.
+          Feed it the 468 landmarks of a face and get a mesh with texture coordinates and normals that
+          lines up with the video. Add the head pose, expression scores and irises when you need them.
+        </p>
+        <nav class="links">
+          <a class="primary" href="#examples">See the examples</a>
+          <a href="https://github.com/spite/FaceMeshFaceGeometry">GitHub</a>
+          <a href="https://github.com/spite/FaceMeshFaceGeometry#readme">Documentation</a>
+        </nav>
+      </header>
+
+      <section>
+        <h2>What it does</h2>
+        <div class="features">
+          <div class="feature">
+            <h3>A mesh that sits on the video</h3>
+            <p>Landmarks become vertices in video pixels, for an orthographic camera, with normals recomputed every frame and the mesh mirrored for selfie cameras.</p>
+          </div>
+          <div class="feature">
+            <h3>Texture coordinates</h3>
+            <p>A fixed UV layout for masks and makeup, or coordinates that sample the video itself, to lift the face out of the frame.</p>
+          </div>
+          <div class="feature">
+            <h3>Head pose, in centimeters</h3>
+            <p>Metric mode builds the mesh in real-world units for a perspective camera, with the head's transform to attach glasses, hats or anything else.</p>
+          </div>
+          <div class="feature">
+            <h3>Expressions and eyes</h3>
+            <p>Scores for 51 expressions by name, like <code>jawOpen</code> or <code>eyeBlinkLeft</code>, and the position and size of both irises.</p>
+          </div>
+          <div class="feature">
+            <h3>Points on the surface</h3>
+            <p><code>track()</code> returns a position, normal and rotation on any triangle of the face, to pin objects to it.</p>
+          </div>
+          <div class="feature">
+            <h3>A camera that just works</h3>
+            <p><code>&lt;gum-av&gt;</code> handles permissions, front and back cameras on phones, broken virtual cameras and apps taking the camera away.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Quick start</h2>
+        <pre><code class="language-javascript">// npm install face-mesh-face-geometry three
+import { FaceMeshFaceGeometry } from "face-mesh-face-geometry";
+
+const faceGeometry = new FaceMeshFaceGeometry();
+scene.add(new Mesh(faceGeometry, new MeshNormalMaterial()));
+
+// Every frame, with a MediaPipe FaceLandmarker in VIDEO mode:
+faceGeometry.setSize(video.videoWidth, video.videoHeight);
+const result = landmarker.detectForVideo(video, performance.now());
+faceGeometry.updateFromResult(result, { flipped: true });</code></pre>
+        <p class="note">
+          <code>face.js</code> imports <code>three</code> by name, so use an import map or a bundler.
+          The <a href="https://github.com/spite/FaceMeshFaceGeometry#readme">README</a> covers the
+          camera setup, metric mode, blendshapes, irises and the full API.
+        </p>
+      </section>
+
+      <section id="examples">
+        <h2>Examples</h2>
+        <p class="note">They need a camera, and ask for permission when they open. Each has a settings panel in the top right.</p>
+        <div class="examples">
+          <a class="example" href="examples/landmarks/">
+            <img src="assets/thumbnails/landmarks.jpg" alt="" loading="lazy" />
+            <div>
+              <h3>Face landmarks</h3>
+              <p>Labels follow 24 parts of the face, placed from the landmarks in video pixels and kept apart with a little 2D physics.</p>
+            </div>
+          </a>
+          <a class="example" href="examples/glasses/">
+            <img src="assets/thumbnails/glasses.jpg" alt="" loading="lazy" />
+            <div>
+              <h3>Glasses and head pose <span class="tag">metric</span></h3>
+              <p>Glasses and a clown nose follow the head in perspective, hidden behind the head where they should be. Optionally over a textured mask.</p>
+            </div>
+          </a>
+          <a class="example" href="examples/expressions/">
+            <img src="assets/thumbnails/expressions.jpg" alt="" loading="lazy" />
+            <div>
+              <h3>Expressions <span class="tag">blendshapes</span></h3>
+              <p>Every blendshape plotted live in the panel. Open your mouth to blow bubbles, and pucker for bigger ones.</p>
+            </div>
+          </a>
+          <a class="example" href="examples/irises/">
+            <img src="assets/thumbnails/irises.jpg" alt="" loading="lazy" />
+            <div>
+              <h3>Eye gaze <span class="tag">metric</span></h3>
+              <p>Arrows show where each eye is looking, from the irises and the head pose, with the surface direction of the forehead, nose, cheeks and chin.</p>
+            </div>
+          </a>
+          <a class="example" href="examples/video/">
+            <img src="assets/thumbnails/video.jpg" alt="" loading="lazy" />
+            <div>
+              <h3>Video-textured face <span class="tag">metric</span></h3>
+              <p>The face cut out of the webcam image and lit as a 3D object, wearing glasses and a clown nose. Drag to look at your own face from the side.</p>
+            </div>
+          </a>
+          <a class="example" href="examples/face_transfer/">
+            <img src="assets/thumbnails/face_transfer.jpg" alt="" loading="lazy" />
+            <div>
+              <h3>Face transfer</h3>
+              <p>A face from a photo mapped onto yours. Pick one in the panel, or drop your own image on the page.</p>
+            </div>
+          </a>
+          <a class="example" href="examples/face_off/">
+            <img src="assets/thumbnails/face_off.jpg" alt="" loading="lazy" />
+            <div>
+              <h3>Face swap</h3>
+              <p>With two people in view, each one wears the other's face.</p>
+            </div>
+          </a>
+          <a class="example" href="examples/instanced/">
+            <img src="assets/thumbnails/instanced.jpg" alt="" loading="lazy" />
+            <div>
+              <h3>Instanced faces</h3>
+              <p>One video-textured face, drawn 500 times as an instanced mesh. Drag to orbit.</p>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <footer>
+        MIT License · Jaume Sanchez ·
+        <a href="https://github.com/spite/FaceMeshFaceGeometry">github.com/spite/FaceMeshFaceGeometry</a>
+      </footer>
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.12.0/highlight.min.js"></script>
+    <script>
+      hljs.highlightAll();
+    </script>
+  </body>
+</html>

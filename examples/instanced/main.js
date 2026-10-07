@@ -21,6 +21,7 @@ import {
 import { FaceMeshFaceGeometry } from "../../js/face.js";
 import { OrbitControls } from "../../third_party/OrbitControls.js";
 import { createFaceLandmarker } from "../landmarker.js";
+import { createGUI, addMirrorToggle, signal } from "../gui.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
@@ -121,12 +122,13 @@ scene.add(hemiLight);
 const ambientLight = new AmbientLight(0x898989, 0.1 * Math.PI);
 scene.add(ambientLight);
 
-// Enable wireframe to debug the mesh on top of the material.
-let wireframe = false;
 const dummy = new Object3D();
 
-// Defines if the source should be flipped horizontally.
-let flipCamera = true;
+const wireframe = signal(false);
+
+const gui = createGUI();
+gui.addCheckbox("Wireframe", wireframe);
+const flipCamera = addMirrorToggle(gui, av);
 
 const r = 7.5 / 2;
 const rr = 2.5 / 2;
@@ -140,8 +142,6 @@ async function render(landmarker) {
   // Wait for video to be ready (loadeddata).
   await av.ready();
 
-  // Flip video element horizontally if necessary.
-  av.video.style.transform = flipCamera ? "scaleX(-1)" : "scaleX(1)";
   av.style.opacity = 1;
   av.video.style.display = "none";
 
@@ -166,7 +166,7 @@ async function render(landmarker) {
   // There's at least one face.
   if (faces.length > 0) {
     // Update face mesh geometry with new data.
-    faceGeometry.update(faces[0], flipCamera);
+    faceGeometry.update(faces[0], flipCamera());
   }
 
   // Update positions of instances.
@@ -196,10 +196,9 @@ async function render(landmarker) {
   instancedFaces.instanceMatrix.needsUpdate = true;
   instancedDummy.instanceMatrix.needsUpdate = true;
 
-  if (wireframe) {
+  if (wireframe()) {
     // Render the faces.
     renderer.autoClear = true;
-    instancedFaces.material = material;
     renderer.render(scene, camera);
     // Prevent renderer from clearing the color buffer.
     renderer.autoClear = false;
@@ -207,6 +206,7 @@ async function render(landmarker) {
     instancedFaces.material = wireframeMaterial;
     // Render again with the wireframe material.
     renderer.render(scene, camera);
+    instancedFaces.material = material;
     renderer.autoClear = true;
   } else {
     // Render the scene normally.

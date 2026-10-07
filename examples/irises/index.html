@@ -3,14 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Face transfer · FaceMeshFaceGeometry</title>
+    <title>Eye gaze · FaceMeshFaceGeometry</title>
     <style>
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-
       gum-av,
       canvas {
         position: absolute;
@@ -77,8 +71,8 @@
 
   <body>
     <header id="info">
-      <h1>Face transfer</h1>
-      <p>A face found in a still image is mapped onto yours. Pick one in the panel, or drop a photo with a face onto the page.</p>
+      <h1>Eye gaze</h1>
+      <p>Arrows show where each eye is looking. They run from an eyeball center, estimated behind the eye and moved with the head pose, through the iris, so they follow both the head and the eyes. The shorter white arrows show which way the forehead, chin, nose and cheeks face. Turn your head and look around.</p>
       <p id="status">Loading...</p>
     </header>
     <div id="container">

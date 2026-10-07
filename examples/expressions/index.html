@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>FaceMesh example</title>
+    <title>Expressions · FaceMeshFaceGeometry</title>
     <style>
       gum-av,
       canvas {
@@ -29,15 +29,35 @@
         background-color: black;
       }
 
-      #status {
+      #info {
         position: absolute;
         left: 0;
         top: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        max-width: 22em;
+        padding: 1em;
         pointer-events: none;
         color: white;
-        padding: 1em;
         font-family: roboto, sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+        text-shadow: 0 1px 3px black;
         z-index: 1;
+      }
+
+      #info h1 {
+        font-size: 1.3em;
+        font-weight: bold;
+      }
+
+      #info p {
+        margin: 0.4em 0 0;
+      }
+
+      #status:empty {
+        display: none;
       }
 
       gum-av {
@@ -50,7 +70,11 @@
   </head>
 
   <body>
-    <p id="status">Loading...</p>
+    <header id="info">
+      <h1>Expressions</h1>
+      <p>MediaPipe&#x27;s blendshapes, scores for 51 facial expressions, plotted live in the panel. Open your mouth to blow bubbles, and pucker for bigger ones.</p>
+      <p id="status">Loading...</p>
+    </header>
     <div id="container">
       <gum-av></gum-av>
       <canvas id="canvas"></canvas>

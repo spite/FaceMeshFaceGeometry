@@ -12,6 +12,7 @@ import {
 import { FaceMeshFaceGeometry } from "../../js/face.js";
 import { OrbitControls } from "../../third_party/OrbitControls.js";
 import { createFaceLandmarker } from "../landmarker.js";
+import { createGUI, addMirrorToggle, signal } from "../gui.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
@@ -81,18 +82,17 @@ scene.add(face1);
 const face2 = new Mesh(faceGeometry2, material);
 scene.add(face2);
 
-// Enable wireframe to debug the mesh on top of the material.
-let wireframe = false;
 
-// Defines if the source should be flipped horizontally.
-let flipCamera = true;
+const wireframe = signal(false);
+
+const gui = createGUI();
+gui.addCheckbox("Wireframe", wireframe);
+const flipCamera = addMirrorToggle(gui, av);
 
 async function render(landmarker) {
   // Wait for video to be ready (loadeddata).
   await av.ready();
 
-  // Flip video element horizontally if necessary.
-  av.video.style.transform = flipCamera ? "scaleX(-1)" : "scaleX(1)";
   av.style.opacity = 1;
 
   // Resize orthographic camera to video dimensions if necessary.
@@ -122,8 +122,8 @@ async function render(landmarker) {
   // There's at least one face.
   if (faces.length == 2) {
     // Update face mesh geometry with new data.
-    faceGeometry1.update(faces[0], flipCamera);
-    faceGeometry2.update(faces[1], flipCamera);
+    faceGeometry1.update(faces[0], flipCamera());
+    faceGeometry2.update(faces[1], flipCamera());
     // Switch uv coordinates.
     for (let j = 0; j < faceGeometry1.uvs.length; j++) {
       const v = faceGeometry1.uvs[j];
@@ -136,17 +136,17 @@ async function render(landmarker) {
     status.textContent = "Can't detect two faces to switch...";
   }
 
-  if (wireframe) {
+  if (wireframe()) {
     // Render the faces.
     renderer.autoClear = true;
-    face1.material = material;
     renderer.render(scene, camera);
     // Prevent renderer from clearing the color buffer.
     renderer.autoClear = false;
     renderer.clear(false, true, false);
-    face1.material = wireframeMaterial;
+    face1.material = face2.material = wireframeMaterial;
     // Render again with the wireframe material.
     renderer.render(scene, camera);
+    face1.material = face2.material = material;
     renderer.autoClear = true;
   } else {
     // Render the scene normally.
