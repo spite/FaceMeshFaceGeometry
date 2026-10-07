@@ -1,7 +1,7 @@
 {
   "name": "face-mesh-face-geometry",
-  "version": "1.0.0",
-  "description": "Three.js geometry for MediaPipe's face mesh: the 468 face landmarks as a BufferGeometry, with texture coordinates, normals, head pose, blendshapes and irises.",
+  "version": "1.1.0",
+  "description": "Three.js geometry for MediaPipe's face mesh: the 468 face landmarks as a BufferGeometry, with texture coordinates, normals, head pose, blendshapes, irises and smoothing.",
   "type": "module",
   "main": "./js/face.js",
   "module": "./js/face.js",

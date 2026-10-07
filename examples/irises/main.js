@@ -16,7 +16,7 @@ import {
 import { FaceMeshFaceGeometry, METRIC_CAMERA_FOV } from "../../js/face.js";
 import { CANONICAL } from "../../js/geometry.js";
 import { createFaceLandmarker } from "../landmarker.js";
-import { createGUI, addMirrorToggle, signal } from "../gui.js";
+import { createGUI, addMirrorToggle, addSmoothingToggle, signal } from "../gui.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
@@ -126,21 +126,13 @@ class GazeArrow extends Arrow {
     this.iris = iris;
     this.eyeball = new Vector3();
     this.direction = new Vector3();
-    this.target = new Vector3();
-    this.smoothed = false;
   }
 
   update(length) {
     // The eyeball center follows the head; the eye looks from it through the iris.
     this.eyeball.copy(this.center).applyMatrix4(faceGeometry.pose);
     const iris = faceGeometry[this.iris].position;
-    this.target.subVectors(iris, this.eyeball).normalize();
-    if (this.smoothed) {
-      this.direction.lerp(this.target, 0.4).normalize();
-    } else {
-      this.direction.copy(this.target);
-      this.smoothed = true;
-    }
+    this.direction.subVectors(iris, this.eyeball).normalize();
     this.set(iris, this.direction, length);
   }
 }
@@ -177,6 +169,7 @@ const gui = createGUI();
 gui.addSlider("Arrow length (cm)", length, 2, 40, 1);
 gui.addCheckbox("Wireframe", showFace);
 const flipCamera = addMirrorToggle(gui, av);
+addSmoothingToggle(gui, faceGeometry);
 
 async function render(landmarker) {
   // Wait for video to be ready (loadeddata).

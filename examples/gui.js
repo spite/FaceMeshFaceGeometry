@@ -31,4 +31,16 @@ function addMirrorToggle(gui, av) {
   return mirror;
 }
 
-export { createGUI, addMirrorToggle, signal, effect };
+// Adds a "Smoothing" toggle, on by default, for the given face geometries.
+function addSmoothingToggle(gui, ...geometries) {
+  const smoothing = signal(true);
+  gui.addCheckbox("Smoothing", smoothing, {
+    title: "Filter the jitter out of the landmarks and head pose",
+  });
+  effect(() => {
+    for (const geometry of geometries) geometry.setSmoothing(smoothing());
+  });
+  return smoothing;
+}
+
+export { createGUI, addMirrorToggle, addSmoothingToggle, signal, effect };

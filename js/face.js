@@ -10,7 +10,9 @@ import {
   Vector3,
   Triangle,
   Matrix4,
+  Quaternion,
 } from "three";
+import { OneEuroFilter, smoothingFactor } from "./filter.js";
 
 const NUM_VERTICES = 468;
 
@@ -34,9 +36,15 @@ for (const v of canonical) {
   canonicalCenter.z += v[2] / NUM_VERTICES;
 }
 
+// Defaults for smoothing, tuned on landmarks in normalized image coordinates.
+const SMOOTHING = { minCutoff: 0.5, beta: 40 };
+
 const mirror = new Matrix4().makeScale(-1, 1, 1);
 const center = new Vector3();
 const point = new Vector3();
+const posePosition = new Vector3();
+const poseRotation = new Quaternion();
+const poseScale = new Vector3();
 
 class FaceMeshFaceGeometry extends BufferGeometry {
   constructor(options = {}) {
@@ -67,6 +75,8 @@ class FaceMeshFaceGeometry extends BufferGeometry {
     this.leftIris = { position: new Vector3(), radius: 0 };
     this.hasIrises = false;
     this.blendshapes = {};
+    this.input = [];
+    this.setSmoothing(options.smoothing);
     this.p0 = new Vector3();
     this.p1 = new Vector3();
     this.p2 = new Vector3();
@@ -86,13 +96,35 @@ class FaceMeshFaceGeometry extends BufferGeometry {
     this.h = h;
   }
 
+  // Turns smoothing off (false), on with the defaults (true), or on with
+  // { minCutoff, beta } for the One Euro filter, in normalized image coordinates.
+  setSmoothing(smoothing) {
+    this.landmarkFilter = null;
+    if (!smoothing) return;
+    const { minCutoff, beta } = { ...SMOOTHING, ...(smoothing === true ? {} : smoothing) };
+    this.landmarkFilter = new OneEuroFilter({ minCutoff, beta });
+    // The pose filters work in centimeters and radians, which move about 80 and 8 times
+    // more than normalized coordinates for the same motion of the face.
+    this.positionFilter = new OneEuroFilter({ minCutoff, beta: beta / 80 });
+    this.rotationFilter = { minCutoff, beta: beta / 8 };
+    this.smoothedRotation = null;
+  }
+
+  // Forgets the smoothing history, for instance when the geometry starts following another face.
+  resetSmoothing() {
+    if (!this.landmarkFilter) return;
+    this.landmarkFilter.reset();
+    this.positionFilter.reset();
+    this.smoothedRotation = null;
+  }
+
   // Updates from a FaceLandmarkerResult, reading the landmarks, blendshapes and
   // transformation matrix of the face at `index`. Returns false if there's no such face.
-  updateFromResult(result, { index = 0, flipped = false } = {}) {
+  updateFromResult(result, { index = 0, flipped = false, timestamp } = {}) {
     const landmarks = result.faceLandmarks[index];
     if (!landmarks) return false;
     const matrices = result.facialTransformationMatrixes;
-    this.update(landmarks, flipped, matrices && matrices[index]);
+    this.update(landmarks, flipped, matrices && matrices[index], timestamp);
     const blendshapes = result.faceBlendshapes && result.faceBlendshapes[index];
     if (blendshapes) {
       for (const c of blendshapes.categories) {
@@ -105,11 +137,12 @@ class FaceMeshFaceGeometry extends BufferGeometry {
   // Accepts the landmarks of one face from MediaPipe's FaceLandmarker
   // (normalized), or a face from @tensorflow-models/face-landmarks-detection
   // (pixels). Pass the landmarks unflipped and set `flipped` instead.
-  // Metric mode also needs the face's facial transformation matrix.
-  update(face, flipped = false, transformationMatrix) {
+  // Metric mode also needs the face's facial transformation matrix. `timestamp`, in
+  // milliseconds, drives the smoothing; it defaults to now.
+  update(face, flipped = false, transformationMatrix, timestamp = performance.now()) {
     const normalized = Array.isArray(face);
-    const landmarks = normalized ? face : face.keypoints;
-    if (!landmarks || landmarks.length < NUM_VERTICES) {
+    const source = normalized ? face : face.keypoints;
+    if (!source || source.length < NUM_VERTICES) {
       throw new Error(
         "FaceMeshFaceGeometry.update expects 468 or more face landmarks."
       );
@@ -125,17 +158,17 @@ class FaceMeshFaceGeometry extends BufferGeometry {
       this.setIndex(flipped ? flippedIndices : indices);
     }
 
-    this.sx = normalized ? this.w : 1;
-    this.sy = normalized ? this.h : 1;
+    const time = timestamp / 1000;
+    const landmarks = this.normalizeInput(source, normalized, time);
     if (this.metric) {
-      this.setPose(landmarks, transformationMatrix);
+      this.setPose(landmarks, transformationMatrix, time);
     }
 
     for (let j = 0; j < NUM_VERTICES; j++) {
       this.landmarkToPosition(landmarks[j], point).toArray(this.positions, j * 3);
       if (this.useVideoTexture) {
-        this.uvs[j * 2] = (landmarks[j].x * this.sx) / this.w;
-        this.uvs[j * 2 + 1] = 1 - (landmarks[j].y * this.sy) / this.h;
+        this.uvs[j * 2] = landmarks[j].x;
+        this.uvs[j * 2 + 1] = 1 - landmarks[j].y;
       }
     }
 
@@ -153,9 +186,49 @@ class FaceMeshFaceGeometry extends BufferGeometry {
     this.computeBoundingSphere();
   }
 
-  setPose(landmarks, transformationMatrix) {
+  // Copies the landmarks into normalized image coordinates, and smooths them.
+  normalizeInput(source, normalized, time) {
+    const sx = normalized ? 1 : 1 / this.w;
+    const sy = normalized ? 1 : 1 / this.h;
+    const count = source.length;
+    while (this.input.length < count) this.input.push({ x: 0, y: 0, z: 0 });
+    this.input.length = count;
+    if (!this.landmarkFilter) {
+      for (let j = 0; j < count; j++) {
+        const l = source[j];
+        const p = this.input[j];
+        p.x = l.x * sx;
+        p.y = l.y * sy;
+        p.z = l.z * sx;
+      }
+      return this.input;
+    }
+    if (!this.filterBuffer || this.filterBuffer.length !== count * 3) {
+      this.filterBuffer = new Float64Array(count * 3);
+    }
+    const values = this.filterBuffer;
+    for (let j = 0; j < count; j++) {
+      const l = source[j];
+      values[j * 3] = l.x * sx;
+      values[j * 3 + 1] = l.y * sy;
+      values[j * 3 + 2] = l.z * sx;
+    }
+    this.landmarkFilter.filter(values, time);
+    for (let j = 0; j < count; j++) {
+      const p = this.input[j];
+      p.x = values[j * 3];
+      p.y = values[j * 3 + 1];
+      p.z = values[j * 3 + 2];
+    }
+    return this.input;
+  }
+
+  setPose(landmarks, transformationMatrix, time) {
     const data = transformationMatrix.data || transformationMatrix.elements;
     this.pose.fromArray(data);
+    if (this.landmarkFilter) {
+      this.smoothPose(time);
+    }
     // Landmark depths are relative, so anchor their mean to the posed canonical face.
     this.depth = -center.copy(canonicalCenter).applyMatrix4(this.pose).z;
     let meanZ = 0;
@@ -170,11 +243,33 @@ class FaceMeshFaceGeometry extends BufferGeometry {
     }
   }
 
+  // Filters the position and rotation of the pose separately: a One Euro filter on the
+  // position, and the same idea on the rotation, slerping by a factor set by its angular speed.
+  smoothPose(time) {
+    this.pose.decompose(posePosition, poseRotation, poseScale);
+    const p = this.positionFilter.filter(posePosition.toArray(), time);
+    posePosition.fromArray(p);
+    if (!this.smoothedRotation) {
+      this.smoothedRotation = poseRotation.clone();
+      this.rotationSpeed = 0;
+      this.rotationTime = time;
+    } else if (time > this.rotationTime) {
+      const dt = time - this.rotationTime;
+      this.rotationTime = time;
+      const speed = this.smoothedRotation.angleTo(poseRotation) / dt;
+      this.rotationSpeed += smoothingFactor(dt, 1) * (speed - this.rotationSpeed);
+      const { minCutoff, beta } = this.rotationFilter;
+      const cutoff = minCutoff + beta * this.rotationSpeed;
+      this.smoothedRotation.slerp(poseRotation, smoothingFactor(dt, cutoff));
+    }
+    this.pose.compose(posePosition, this.smoothedRotation, poseScale);
+  }
+
   landmarkToPosition(l, target) {
     const { w, h } = this;
-    const x = l.x * this.sx;
-    const y = l.y * this.sy;
-    const z = l.z * this.sx;
+    const x = l.x * w;
+    const y = l.y * h;
+    const z = l.z * w;
     if (this.metric) {
       // Unproject the landmark through the camera the transformation matrix assumes.
       const depth =
@@ -226,5 +321,5 @@ class FaceMeshFaceGeometry extends BufferGeometry {
   }
 }
 
-export { FaceMeshFaceGeometry, METRIC_CAMERA_FOV };
+export { FaceMeshFaceGeometry, METRIC_CAMERA_FOV, OneEuroFilter };
 export { FACES, UVS, CANONICAL } from "./geometry.js";

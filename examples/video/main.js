@@ -18,7 +18,7 @@ import {
 import { FaceMeshFaceGeometry, METRIC_CAMERA_FOV } from "../../js/face.js";
 import { OrbitControls } from "../../third_party/OrbitControls.js";
 import { createFaceLandmarker } from "../landmarker.js";
-import { createGUI, addMirrorToggle, signal } from "../gui.js";
+import { createGUI, addMirrorToggle, addSmoothingToggle, signal } from "../gui.js";
 import { createGlasses, createClownNose } from "../accessories.js";
 
 const av = document.querySelector("gum-av");
@@ -127,6 +127,7 @@ const orbit = signal(true);
 const gui = createGUI();
 gui.addCheckbox("Wireframe", wireframe);
 const flipCamera = addMirrorToggle(gui, av);
+addSmoothingToggle(gui, faceGeometry);
 gui.addCheckbox("Orbit camera", orbit, { title: "Drag to look at the face mesh from any side" });
 
 async function render(landmarker) {

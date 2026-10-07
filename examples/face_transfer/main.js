@@ -18,7 +18,7 @@ import {
 import { FaceMeshFaceGeometry } from "../../js/face.js";
 import { OrbitControls } from "../../third_party/OrbitControls.js";
 import { createFaceLandmarker } from "../landmarker.js";
-import { createGUI, addMirrorToggle, signal, effect } from "../gui.js";
+import { createGUI, addMirrorToggle, addSmoothingToggle, signal, effect } from "../gui.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
@@ -133,6 +133,7 @@ const wireframe = signal(false);
 const gui = createGUI();
 gui.addCheckbox("Wireframe", wireframe);
 const flipCamera = addMirrorToggle(gui, av);
+addSmoothingToggle(gui, faceGeometry);
 
 // Fade the edges of the face into the video with the alpha mask.
 const maskAlpha = signal(false);

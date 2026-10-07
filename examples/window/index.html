@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Head-coupled perspective · FaceMeshFaceGeometry</title>
+    <style>
+      gum-av,
+      canvas {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      canvas {
+        margin: auto;
+      }
+
+      #container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: black;
+      }
+
+      #info {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        max-width: 22em;
+        padding: 1em;
+        pointer-events: none;
+        color: white;
+        font-family: roboto, sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+        text-shadow: 0 1px 3px black;
+        z-index: 1;
+      }
+
+      #info h1 {
+        font-size: 1.3em;
+        font-weight: bold;
+      }
+
+      #info p {
+        margin: 0.4em 0 0;
+      }
+
+      #info nav {
+        margin-top: 0.4em;
+      }
+
+      #info nav a {
+        color: white;
+        pointer-events: auto;
+      }
+
+      #status:empty {
+        display: none;
+      }
+
+      gum-av {
+        font-family: roboto, sans-serif;
+        color: white;
+        opacity: 0;
+        transition: opacity 1s ease-out;
+      }
+      gum-av {
+        left: auto;
+        top: auto;
+        right: 16px;
+        bottom: 16px;
+        width: 240px;
+        height: 180px;
+        border-radius: 8px;
+        overflow: hidden;
+        z-index: 1;
+      }
+      #calibration {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        padding: 16px;
+        background: rgba(8, 8, 12, 0.92);
+        color: white;
+        font: 15px/1.5 roboto, sans-serif;
+        text-align: center;
+      }
+
+      #calibration[hidden] {
+        display: none;
+      }
+
+      #calibration p {
+        max-width: 32em;
+        margin: 0;
+      }
+
+      #calibration .card {
+        position: relative;
+        flex: none;
+        border: 2px solid white;
+        background: rgba(255, 255, 255, 0.06);
+        box-sizing: border-box;
+      }
+
+      #calibration .chip {
+        position: absolute;
+        left: 11%;
+        top: 34%;
+        width: 13%;
+        height: 18%;
+        border: 2px solid rgba(255, 255, 255, 0.6);
+        border-radius: 4px;
+      }
+
+      #calibration .handle {
+        position: absolute;
+        right: -12px;
+        bottom: -12px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #ff6347;
+        cursor: nwse-resize;
+        touch-action: none;
+      }
+
+      #calibration input {
+        width: min(480px, 80vw);
+      }
+
+      #calibration button {
+        font: inherit;
+        padding: 8px 20px;
+        margin: 0 6px;
+        border-radius: 6px;
+        border: 1px solid white;
+        background: none;
+        color: white;
+        cursor: pointer;
+      }
+
+      #calibration button.primary {
+        background: white;
+        color: black;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header id="info">
+      <h1>Head-coupled perspective</h1>
+      <p>The screen becomes a window into a room behind it. Your head position, from metric mode, moves the viewpoint, so the room shifts as you move your head and keeps its depth. Works best with one eye closed. Calibrate the screen size with a bank card from the panel, and check it with Calibration check.</p>
+      <nav>
+        <a href="../../">← All examples</a> ·
+        <a href="https://github.com/spite/FaceMeshFaceGeometry/tree/master/examples/window">Source on GitHub</a>
+      </nav>
+      <p id="status">Loading...</p>
+    </header>
+    <div id="calibration" hidden>
+      <p>Hold a bank card flat against the screen, over the outline, and resize the outline until it matches the card exactly, with the slider or the red corner. Any credit or debit card works: they're all the same size.</p>
+      <div class="card"><div class="chip"></div><div class="handle"></div></div>
+      <input type="range" min="120" max="1200" step="0.5" aria-label="Card size" />
+      <div>
+        <button id="calibration-cancel" type="button">Cancel</button>
+        <button id="calibration-done" class="primary" type="button">Done</button>
+      </div>
+    </div>
+    <div id="container">
+      <gum-av></gum-av>
+      <canvas id="canvas"></canvas>
+    </div>
+    <script type="importmap">
+      { "imports": { "three": "../../third_party/three.module.js" } }
+    </script>
+    <script src="../../third_party/gum-av.js" type="module"></script>
+    <script src="main.js" type="module"></script>
+  </body>
+</html>

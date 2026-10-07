@@ -39,6 +39,26 @@ export interface FaceMeshFaceGeometryOptions {
   normalizeCoords?: boolean;
   /** Vertices in centimeters for a perspective camera, with the head pose. */
   metric?: boolean;
+  /** Smooth the landmarks and pose with a One Euro filter: true for the defaults, or its parameters. */
+  smoothing?: boolean | SmoothingOptions;
+}
+
+export interface SmoothingOptions {
+  /** Cutoff frequency at rest, in Hz: lower is smoother. Defaults to 0.5. */
+  minCutoff?: number;
+  /** How fast the cutoff rises with speed, in normalized image coordinates: higher lags less. Defaults to 40. */
+  beta?: number;
+}
+
+/** One Euro filter (Casiez et al. 2012) over arrays of values. */
+export declare class OneEuroFilter {
+  constructor(options?: { minCutoff?: number; beta?: number; dCutoff?: number });
+  minCutoff: number;
+  beta: number;
+  dCutoff: number;
+  reset(): void;
+  /** Filters `values` in place at `time`, in seconds, and returns them. */
+  filter<T extends ArrayLike<number> & { [index: number]: number }>(values: T, time: number): T;
 }
 
 export declare class FaceMeshFaceGeometry extends BufferGeometry {
@@ -61,17 +81,25 @@ export declare class FaceMeshFaceGeometry extends BufferGeometry {
   /** Sets the size of the input, to frame the coordinates. */
   setSize(width: number, height: number): void;
 
+  /** Turns smoothing off, on with the defaults, or on with these parameters. */
+  setSmoothing(smoothing: boolean | SmoothingOptions | undefined): void;
+
+  /** Forgets the smoothing history, for instance when following another face. */
+  resetSmoothing(): void;
+
   /** Updates from the face at `index` of a result. Returns false if there's no such face. */
   updateFromResult(
     result: FaceLandmarkerResult,
-    options?: { index?: number; flipped?: boolean }
+    options?: { index?: number; flipped?: boolean; timestamp?: number }
   ): boolean;
 
   /** Updates the vertices and normals from one face's landmarks. */
   update(
     face: NormalizedLandmark[] | KeypointsFace,
     flipped?: boolean,
-    transformationMatrix?: TransformationMatrix
+    transformationMatrix?: TransformationMatrix,
+    /** In milliseconds, for the smoothing. Defaults to performance.now(). */
+    timestamp?: number
   ): void;
 
   /** Center, normal and orthogonal basis of the triangle between three vertices. */

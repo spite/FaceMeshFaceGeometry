@@ -21,7 +21,7 @@ import {
 import { FaceMeshFaceGeometry } from "../../js/face.js";
 import { OrbitControls } from "../../third_party/OrbitControls.js";
 import { createFaceLandmarker } from "../landmarker.js";
-import { createGUI, addMirrorToggle, signal } from "../gui.js";
+import { createGUI, addMirrorToggle, addSmoothingToggle, signal } from "../gui.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
@@ -129,6 +129,7 @@ const wireframe = signal(false);
 const gui = createGUI();
 gui.addCheckbox("Wireframe", wireframe);
 const flipCamera = addMirrorToggle(gui, av);
+addSmoothingToggle(gui, faceGeometry);
 
 const r = 7.5 / 2;
 const rr = 2.5 / 2;

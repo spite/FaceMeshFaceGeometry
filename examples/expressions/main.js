@@ -12,7 +12,7 @@ import {
 } from "three";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
 import { createFaceLandmarker } from "../landmarker.js";
-import { createGUI, addMirrorToggle, signal } from "../gui.js";
+import { createGUI, addMirrorToggle, addSmoothingToggle, signal } from "../gui.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
@@ -188,6 +188,7 @@ const BLENDSHAPES = {
 
 const gui = createGUI();
 const flipCamera = addMirrorToggle(gui, av);
+addSmoothingToggle(gui, faceGeometry);
 
 // One graph per blendshape, each plotting its score over time.
 const scores = {};

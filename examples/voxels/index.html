@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Voxel anonymizer · FaceMeshFaceGeometry</title>
+    <style>
+      gum-av,
+      canvas {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      canvas {
+        margin: auto;
+      }
+
+      #container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: black;
+      }
+
+      #info {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        max-width: 22em;
+        padding: 1em;
+        pointer-events: none;
+        color: white;
+        font-family: roboto, sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+        text-shadow: 0 1px 3px black;
+        z-index: 1;
+      }
+
+      #info h1 {
+        font-size: 1.3em;
+        font-weight: bold;
+      }
+
+      #info p {
+        margin: 0.4em 0 0;
+      }
+
+      #info nav {
+        margin-top: 0.4em;
+      }
+
+      #info nav a {
+        color: white;
+        pointer-events: auto;
+      }
+
+      #status:empty {
+        display: none;
+      }
+
+      gum-av {
+        font-family: roboto, sans-serif;
+        color: white;
+        opacity: 0;
+        transition: opacity 1s ease-out;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header id="info">
+      <h1>Voxel anonymizer</h1>
+      <p>Your face, pixelated to hide it, but the pixels are real 3D voxels: the face, in centimeters, fills a grid of cubes colored by the video, with its depth. The grid turns with your head; turn off Follow head to keep it square to the camera.</p>
+      <nav>
+        <a href="../../">← All examples</a> ·
+        <a href="https://github.com/spite/FaceMeshFaceGeometry/tree/master/examples/voxels">Source on GitHub</a>
+      </nav>
+      <p id="status">Loading...</p>
+    </header>
+    <div id="container">
+      <gum-av></gum-av>
+      <canvas id="canvas"></canvas>
+    </div>
+    <script type="importmap">
+      { "imports": { "three": "../../third_party/three.module.js" } }
+    </script>
+    <script src="../../third_party/gum-av.js" type="module"></script>
+    <script src="main.js" type="module"></script>
+  </body>
+</html>

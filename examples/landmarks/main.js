@@ -8,7 +8,7 @@ import {
 } from "three";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
 import { createFaceLandmarker } from "../landmarker.js";
-import { createGUI, addMirrorToggle, signal } from "../gui.js";
+import { createGUI, addMirrorToggle, addSmoothingToggle, signal } from "../gui.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
@@ -61,6 +61,7 @@ const gui = createGUI();
 gui.addCheckbox("Labels", labels);
 gui.addCheckbox("Wireframe", wireframe);
 const flipCamera = addMirrorToggle(gui, av);
+addSmoothingToggle(gui, faceGeometry);
 
 // Labelled arrows pointing at facial features, drawn on an SVG overlay.
 const svg = document.querySelector("#annotations");

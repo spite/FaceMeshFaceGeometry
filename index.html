@@ -231,6 +231,10 @@
             <p>Scores for 51 expressions by name, like <code>jawOpen</code> or <code>eyeBlinkLeft</code>, and the position and size of both irises.</p>
           </div>
           <div class="feature">
+            <h3>Smooth tracking</h3>
+            <p>An optional One Euro filter takes the jitter out of the landmarks and the head pose without making them lag.</p>
+          </div>
+          <div class="feature">
             <h3>Points on the surface</h3>
             <p><code>track()</code> returns a position, normal and rotation on any triangle of the face, to pin objects to it.</p>
           </div>
@@ -246,7 +250,7 @@
         <pre><code class="language-javascript">// npm install face-mesh-face-geometry three
 import { FaceMeshFaceGeometry } from "face-mesh-face-geometry";
 
-const faceGeometry = new FaceMeshFaceGeometry();
+const faceGeometry = new FaceMeshFaceGeometry({ smoothing: true });
 scene.add(new Mesh(faceGeometry, new MeshNormalMaterial()));
 
 // Every frame, with a MediaPipe FaceLandmarker in VIDEO mode:
@@ -283,6 +287,27 @@ faceGeometry.updateFromResult(result, { flipped: true });</code></pre>
             <div>
               <h3>Expressions <span class="tag">blendshapes</span></h3>
               <p>Every blendshape plotted live in the panel. Open your mouth to blow bubbles, and pucker for bigger ones.</p>
+            </div>
+          </a>
+          <a class="example" href="examples/window/">
+            <img src="assets/thumbnails/window.jpg" alt="" loading="lazy" />
+            <div>
+              <h3>Head-coupled perspective <span class="tag">metric</span></h3>
+              <p>The screen becomes a window into a room, whose perspective follows your head as you move. Calibrate it with a bank card.</p>
+            </div>
+          </a>
+          <a class="example" href="examples/music/">
+            <img src="assets/thumbnails/music.jpg" alt="" loading="lazy" />
+            <div>
+              <h3>Music visualizer</h3>
+              <p>An LED matrix glows on your face like a robot helmet, dancing to a built-in beat, the microphone, or a music file.</p>
+            </div>
+          </a>
+          <a class="example" href="examples/voxels/">
+            <img src="assets/thumbnails/voxels.jpg" alt="" loading="lazy" />
+            <div>
+              <h3>Voxel anonymizer <span class="tag">metric</span></h3>
+              <p>Your face pixelated to hide it, but the pixels are real 3D voxels that keep its depth, and turn with your head.</p>
             </div>
           </a>
           <a class="example" href="examples/irises/">

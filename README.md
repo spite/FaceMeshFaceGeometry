@@ -10,16 +10,21 @@ A three.js `BufferGeometry` for the face mesh from [MediaPipe's Face Landmarker]
 
 They need a camera, and ask for permission when they open. Each has a settings panel in the top right.
 
-| Example | What it shows |
-| --- | --- |
-| [Face landmarks](https://spite.github.io/FaceMeshFaceGeometry/examples/landmarks/) | Labels on 24 parts of the face, placed from the landmarks in video pixels and kept apart with a little 2D physics. |
-| [Glasses and head pose](https://spite.github.io/FaceMeshFaceGeometry/examples/glasses/) | Metric mode: glasses and a clown nose follow the head in perspective, hidden behind the head where they should be, optionally over a textured mask. |
-| [Expressions](https://spite.github.io/FaceMeshFaceGeometry/examples/expressions/) | Every blendshape plotted live in the panel. Open your mouth to blow bubbles. |
-| [Eye gaze](https://spite.github.io/FaceMeshFaceGeometry/examples/irises/) | Arrows show where each eye is looking, from the irises and the head pose, and which way the forehead, nose, cheeks and chin face. |
-| [Video-textured face](https://spite.github.io/FaceMeshFaceGeometry/examples/video/) | The face cut out of the webcam image and lit as a 3D object, wearing glasses and a clown nose. Drag to look around it. |
-| [Face transfer](https://spite.github.io/FaceMeshFaceGeometry/examples/face_transfer/) | A face from a photo mapped onto yours. Pick one in the panel, or drop your own image. |
-| [Face swap](https://spite.github.io/FaceMeshFaceGeometry/examples/face_off/) | With two people in view, each one wears the other's face. |
-| [Instanced faces](https://spite.github.io/FaceMeshFaceGeometry/examples/instanced/) | One video-textured face drawn 500 times as an instanced mesh. |
+| Example | What it shows | Uses |
+| --- | --- | --- |
+| [Face landmarks](https://spite.github.io/FaceMeshFaceGeometry/examples/landmarks/) | Labels on 24 parts of the face, placed from the landmarks and kept apart with a little 2D physics. | Video space, `positions` |
+| [Glasses and head pose](https://spite.github.io/FaceMeshFaceGeometry/examples/glasses/) | Glasses and a clown nose follow the head in perspective, hidden behind the head where they should be, optionally over a textured mask. | Metric mode, `pose`, `CANONICAL` |
+| [Expressions](https://spite.github.io/FaceMeshFaceGeometry/examples/expressions/) | Every blendshape plotted live in the panel. Open your mouth to blow bubbles, and pucker for bigger ones. | `blendshapes` |
+| [Head-coupled perspective](https://spite.github.io/FaceMeshFaceGeometry/examples/window/) | The screen becomes a window into a room, whose perspective follows your head. Calibrate the screen size with a bank card. | Metric mode, irises |
+| [Music visualizer](https://spite.github.io/FaceMeshFaceGeometry/examples/music/) | An LED matrix on your face, like a robot helmet, dancing to a built-in beat, the microphone or a music file: rainbow bands, an equalizer or scrolling text, with an optional visor. | Fixed UVs |
+| [Voxel anonymizer](https://spite.github.io/FaceMeshFaceGeometry/examples/voxels/) | Your face pixelated to hide it, but with real 3D voxels that keep its depth and colors, and turn with your head. | Metric mode, `pose`, video UVs |
+| [Eye gaze](https://spite.github.io/FaceMeshFaceGeometry/examples/irises/) | Arrows show where each eye is looking, from the irises and the head pose, and which way the forehead, nose, cheeks and chin face. | Metric mode, `pose`, irises, normals |
+| [Video-textured face](https://spite.github.io/FaceMeshFaceGeometry/examples/video/) | The face cut out of the webcam image and lit as a 3D object, wearing glasses and a clown nose. Drag to look around it. | Metric mode, `useVideoTexture`, `pose` |
+| [Face transfer](https://spite.github.io/FaceMeshFaceGeometry/examples/face_transfer/) | A face from a photo mapped onto yours. Pick one in the panel, or drop your own image. | Landmarks of an image as UVs |
+| [Face swap](https://spite.github.io/FaceMeshFaceGeometry/examples/face_off/) | With two people in view, each one wears the other's face. | `useVideoTexture`, two faces |
+| [Instanced faces](https://spite.github.io/FaceMeshFaceGeometry/examples/instanced/) | One video-textured face drawn 500 times as an instanced mesh. Drag to orbit. | `useVideoTexture`, `normalizeCoords` |
+
+All but the face swap smooth the tracking, with a toggle in the panel to compare.
 
 ## Install
 
@@ -87,7 +92,7 @@ A complete page: the camera, the model, and a mesh on top of the video.
       const scene = new Scene();
       const camera = new OrthographicCamera(-1, 1, 1, -1, -1000, 1000);
 
-      const faceGeometry = new FaceMeshFaceGeometry();
+      const faceGeometry = new FaceMeshFaceGeometry({ smoothing: true });
       scene.add(new Mesh(faceGeometry, new MeshNormalMaterial()));
 
       const fileset = await FilesetResolver.forVisionTasks(
@@ -218,6 +223,23 @@ Ask the Face Landmarker for blendshapes with `outputFaceBlendshapes: true`, and 
 
 The gaze example combines the irises with the head pose to estimate where each eye is looking.
 
+### Smoothing
+
+The landmarks jitter a little from frame to frame, and the head pose with them. Construct the helper with `smoothing: true` to filter them with a [One Euro filter](https://gery.casiez.net/1euro/), which smooths a lot while the face is still and little while it moves, so it removes the jitter without adding much lag:
+
+```js
+const faceGeometry = new FaceMeshFaceGeometry({ metric: true, smoothing: true });
+```
+
+It filters the landmarks before anything is built from them, so the vertices, irises and video texture coordinates are all smoothed, and in metric mode the pose too. Tune it with `{ minCutoff, beta }` instead of `true`: a lower `minCutoff` (0.5 by default) smooths more at rest, a higher `beta` (40 by default) lags less when moving. `setSmoothing()` changes it later, and `resetSmoothing()` forgets the history, for instance when the geometry starts following another face.
+
+Smoothing goes by time, `performance.now()` unless you pass a `timestamp` in milliseconds to `updateFromResult()` or `update()`, which matters when processing a recorded video faster or slower than real time. Blendshapes aren't smoothed; the filter is exported as `OneEuroFilter` to smooth them or anything else:
+
+```js
+const filter = new OneEuroFilter({ minCutoff: 1, beta: 0 });
+const [jawOpen] = filter.filter([faceGeometry.blendshapes.jawOpen], performance.now() / 1000);
+```
+
 ### Points on the surface
 
 `track(a, b, c)` returns the center, normal and an orthogonal basis of the triangle between three vertices, to pin things to the surface of the face:
@@ -258,14 +280,19 @@ It opens the camera when added to the page and releases it when removed. Its swi
 | `useVideoTexture` | `false` | Texture coordinates that follow the input video. |
 | `normalizeCoords` | `false` | Center the mesh and scale it so the input's height is 1 unit. |
 | `metric` | `false` | Vertices in centimeters for a perspective camera, with the head pose. |
+| `smoothing` | `false` | Smooth the landmarks and pose: `true`, or `{ minCutoff, beta }` for the One Euro filter. |
 
 ### Methods
 
 **`setSize(width, height)`** sets the size of the input, to frame the coordinates. Call it before updating, and whenever the video size changes.
 
-**`updateFromResult(result, { index = 0, flipped = false })`** updates the geometry, blendshapes, irises and pose from the face at `index` of a `FaceLandmarkerResult`. Returns `false` if there's no such face.
+**`updateFromResult(result, { index = 0, flipped = false, timestamp })`** updates the geometry, blendshapes, irises and pose from the face at `index` of a `FaceLandmarkerResult`. Returns `false` if there's no such face. `timestamp`, in milliseconds, drives the smoothing, and defaults to now.
 
-**`update(face, flipped = false, transformationMatrix?)`** updates the vertices and normals from one face: an entry of `faceLandmarks` from MediaPipe (normalized coordinates), or a face with `keypoints` from face-landmarks-detection (pixels). Metric mode needs the face's transformation matrix, from `facialTransformationMatrixes`.
+**`update(face, flipped = false, transformationMatrix?, timestamp?)`** updates the vertices and normals from one face: an entry of `faceLandmarks` from MediaPipe (normalized coordinates), or a face with `keypoints` from face-landmarks-detection (pixels). Metric mode needs the face's transformation matrix, from `facialTransformationMatrixes`.
+
+**`setSmoothing(smoothing)`** turns smoothing off (`false`), on with the defaults (`true`), or on with `{ minCutoff, beta }`.
+
+**`resetSmoothing()`** forgets the smoothing history.
 
 **`track(id0, id1, id2)`** returns `{ position, normal, rotation }` for the triangle between three vertices: its center, its normal, and a `Matrix4` basis.
 
@@ -284,6 +311,7 @@ It opens the camera when added to the page and releases it when removed. Its swi
 | Export | |
 | --- | --- |
 | `FaceMeshFaceGeometry` | The geometry. |
+| `OneEuroFilter` | The filter behind the smoothing: `new OneEuroFilter({ minCutoff, beta, dCutoff })`, then `filter(values, seconds)` smooths an array in place. |
 | `METRIC_CAMERA_FOV` | Vertical field of view, in degrees, for the camera in metric mode (63). |
 | `FACES` | Triangle indices of the mesh. |
 | `UVS` | The fixed texture coordinates of the 468 vertices. |

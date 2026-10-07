@@ -19,7 +19,7 @@ import {
 import { FaceMeshFaceGeometry, METRIC_CAMERA_FOV } from "../../js/face.js";
 import { createGlasses, createClownNose } from "../accessories.js";
 import { createFaceLandmarker } from "../landmarker.js";
-import { createGUI, addMirrorToggle, signal } from "../gui.js";
+import { createGUI, addMirrorToggle, addSmoothingToggle, signal } from "../gui.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
@@ -142,6 +142,7 @@ gui.addSegmented("Face", faceMode, [
 gui.addCheckbox("Glasses", showGlasses);
 gui.addCheckbox("Nose", showNose);
 const flipCamera = addMirrorToggle(gui, av);
+addSmoothingToggle(gui, faceGeometry);
 
 async function render(landmarker) {
   // Wait for video to be ready (loadeddata).
