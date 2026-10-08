@@ -125,6 +125,8 @@ const audio = new AudioInput();
 const videoMaterial = new MeshBasicMaterial({ color: 0x505060 });
 const background = new Mesh(new PlaneGeometry(1, 1), videoMaterial);
 background.position.z = -500;
+// Drawn first, so the face's depth mask below doesn't cut a hole in it.
+background.renderOrder = -2;
 scene.add(background);
 
 const faceGeometry = new FaceMeshFaceGeometry();
@@ -141,6 +143,11 @@ const visorMaterial = new MeshPhysicalMaterial({
   alphaMap: mask,
   transparent: true,
 });
+// An invisible copy of the face that only writes depth, to hide the part of the rim behind it.
+const faceMask = new Mesh(faceGeometry, new MeshBasicMaterial({ colorWrite: false }));
+faceMask.renderOrder = -1;
+scene.add(faceMask);
+
 const visor = new Mesh(faceGeometry, visorMaterial);
 visor.visible = false;
 scene.add(visor);
@@ -415,7 +422,7 @@ async function render(landmarker) {
   // Detect the face landmarks in the current video frame.
   const result = landmarker.detectForVideo(av.video, performance.now());
   const found = faceGeometry.updateFromResult(result, { flipped: flipCamera() });
-  leds.visible = found;
+  leds.visible = faceMask.visible = found;
   visor.visible = found && showVisor();
   rim.visible = found && showRim();
   if (rim.visible) updateRim();
