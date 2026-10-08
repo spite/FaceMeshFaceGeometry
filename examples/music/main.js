@@ -156,13 +156,66 @@ scene.add(visor);
 const spectrum = new DataTexture(audio.spectrum, BINS, 1, RedFormat);
 spectrum.minFilter = spectrum.magFilter = LinearFilter;
 
-// Text for the marquee, drawn one LED row per pixel.
-const TEXT_ROWS = 9;
+// Text for the marquee, in a 5x7 LED font: one canvas pixel per LED.
+const TEXT_ROWS = 7;
 const textCanvas = document.createElement("canvas");
 const textTexture = new CanvasTexture(textCanvas);
 textTexture.minFilter = textTexture.magFilter = NearestFilter;
+// The shader reads the rows top-down, as they're drawn.
+textTexture.flipY = false;
 
-const MODES = ["bands", "equalizer", "marquee"];
+// Each glyph is seven rows of five bits, the leftmost dot in the highest bit.
+const FONT = {
+  A: [0x0e, 0x11, 0x11, 0x1f, 0x11, 0x11, 0x11],
+  B: [0x1e, 0x11, 0x11, 0x1e, 0x11, 0x11, 0x1e],
+  C: [0x0e, 0x11, 0x10, 0x10, 0x10, 0x11, 0x0e],
+  D: [0x1e, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1e],
+  E: [0x1f, 0x10, 0x10, 0x1e, 0x10, 0x10, 0x1f],
+  F: [0x1f, 0x10, 0x10, 0x1e, 0x10, 0x10, 0x10],
+  G: [0x0e, 0x11, 0x10, 0x17, 0x11, 0x11, 0x0f],
+  H: [0x11, 0x11, 0x11, 0x1f, 0x11, 0x11, 0x11],
+  I: [0x0e, 0x04, 0x04, 0x04, 0x04, 0x04, 0x0e],
+  J: [0x07, 0x02, 0x02, 0x02, 0x02, 0x12, 0x0c],
+  K: [0x11, 0x12, 0x14, 0x18, 0x14, 0x12, 0x11],
+  L: [0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x1f],
+  M: [0x11, 0x1b, 0x15, 0x15, 0x11, 0x11, 0x11],
+  N: [0x11, 0x11, 0x19, 0x15, 0x13, 0x11, 0x11],
+  O: [0x0e, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0e],
+  P: [0x1e, 0x11, 0x11, 0x1e, 0x10, 0x10, 0x10],
+  Q: [0x0e, 0x11, 0x11, 0x11, 0x15, 0x12, 0x0d],
+  R: [0x1e, 0x11, 0x11, 0x1e, 0x14, 0x12, 0x11],
+  S: [0x0f, 0x10, 0x10, 0x0e, 0x01, 0x01, 0x1e],
+  T: [0x1f, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04],
+  U: [0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0e],
+  V: [0x11, 0x11, 0x11, 0x11, 0x11, 0x0a, 0x04],
+  W: [0x11, 0x11, 0x11, 0x15, 0x15, 0x15, 0x0a],
+  X: [0x11, 0x11, 0x0a, 0x04, 0x0a, 0x11, 0x11],
+  Y: [0x11, 0x11, 0x11, 0x0a, 0x04, 0x04, 0x04],
+  Z: [0x1f, 0x01, 0x02, 0x04, 0x08, 0x10, 0x1f],
+  0: [0x0e, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0e],
+  1: [0x04, 0x0c, 0x04, 0x04, 0x04, 0x04, 0x0e],
+  2: [0x0e, 0x11, 0x01, 0x02, 0x04, 0x08, 0x1f],
+  3: [0x1f, 0x02, 0x04, 0x02, 0x01, 0x11, 0x0e],
+  4: [0x02, 0x06, 0x0a, 0x12, 0x1f, 0x02, 0x02],
+  5: [0x1f, 0x10, 0x1e, 0x01, 0x01, 0x11, 0x0e],
+  6: [0x06, 0x08, 0x10, 0x1e, 0x11, 0x11, 0x0e],
+  7: [0x1f, 0x01, 0x02, 0x04, 0x08, 0x08, 0x08],
+  8: [0x0e, 0x11, 0x11, 0x0e, 0x11, 0x11, 0x0e],
+  9: [0x0e, 0x11, 0x11, 0x0f, 0x01, 0x02, 0x0c],
+  " ": [0, 0, 0, 0, 0, 0, 0],
+  ".": [0, 0, 0, 0, 0, 0x0c, 0x0c],
+  ",": [0, 0, 0, 0, 0x0c, 0x04, 0x08],
+  "!": [0x04, 0x04, 0x04, 0x04, 0x04, 0, 0x04],
+  "?": [0x0e, 0x11, 0x01, 0x02, 0x04, 0, 0x04],
+  "-": [0, 0, 0, 0x1f, 0, 0, 0],
+  "+": [0, 0x04, 0x04, 0x1f, 0x04, 0x04, 0],
+  "'": [0x04, 0x04, 0x08, 0, 0, 0, 0],
+  ":": [0, 0x0c, 0x0c, 0, 0x0c, 0x0c, 0],
+  "/": [0x01, 0x01, 0x02, 0x04, 0x08, 0x10, 0x10],
+  "&": [0x0c, 0x12, 0x14, 0x08, 0x15, 0x12, 0x0d],
+};
+
+const MODES = ["bands", "equalizer", "marquee", "helmet"];
 
 // The LEDs behind the visor: a dot matrix laid out on the canonical texture coordinates.
 const ledMaterial = new ShaderMaterial({
@@ -254,7 +307,7 @@ const ledMaterial = new ShaderMaterial({
         on = step(position, amount);
         color = mix(vec3(0.1, 1.0, 0.3), vec3(1.0, 0.85, 0.1), smoothstep(0.35, 0.6, position));
         color = mix(color, vec3(1.0, 0.1, 0.1), smoothstep(0.65, 0.8, position));
-      } else {
+      } else if (mode == 2) {
         color = mix(vec3(1.0, 0.15, 0.1), vec3(1.0, 0.6, 0.1), bass);
         if (upright) {
           // Marquee: text scrolling down the middle of the face, turned a quarter turn.
@@ -278,6 +331,37 @@ const ledMaterial = new ShaderMaterial({
             color = vec3(0.2, 0.6, 1.0);
           }
         }
+      } else {
+        // Helmet: like a robot helmet, rainbow bars in two side panels, red low notes at the
+        // bottom to violet high ones at the top, each growing inwards as its band gets louder,
+        // and a strip of small LEDs on the chin. The middle stays dark.
+        float rows = 12.0;
+        float rowPosition = (uv.y - 0.14) / 0.74 * rows;
+        float row = floor(rowPosition);
+        // The sides of the layout wrap around the face, so the panels start well inside it.
+        float panel = 0.3;
+        led = 0.0;
+        halo = 0.0;
+        if (row >= 0.0 && row < rows && side > panel) {
+          float band = row / (rows - 1.0);
+          float amount = sqrt(level(pow(band, 1.4) * 0.5));
+          // The bar runs from the edge inwards, over at least a third of the panel.
+          float reach = 1.0 - (1.0 - panel) * (0.35 + 0.65 * amount);
+          float across = abs(fract(rowPosition) - 0.5) / 0.3;
+          float along = smoothstep(reach - 0.015, reach + 0.015, side);
+          led = smoothstep(1.1, 0.8, across) * along;
+          halo = smoothstep(2.0, 0.0, across) * 0.35 * along;
+          on = 0.35 + 0.65 * amount;
+          color = hue(band * 0.8);
+        } else if (uv.y > 0.06 && uv.y < 0.13 && side < 0.4) {
+          // Chin strip: three rows of small LEDs, mirrored, bouncing with the spectrum.
+          float stripRow = floor((uv.y - 0.06) / 0.07 * 3.0);
+          float amount = sqrt(level(side * 0.6));
+          led = smoothstep(0.2, 0.12, d);
+          halo = smoothstep(0.5, 0.0, d) * 0.25;
+          on = step(stripRow / 3.0, amount);
+          color = mix(vec3(1.0, 0.6, 0.1), vec3(1.0, 0.15, 0.1), stripRow / 2.0);
+        }
       }
 
       // Behind the visor, unlit LEDs stay faintly visible through the glass.
@@ -295,17 +379,22 @@ leds.renderOrder = 1;
 leds.layers.enable(BLOOM_LAYER);
 scene.add(leds);
 
+// Draws the text dot by dot, six columns per character: five for the glyph and a gap.
 function drawText(text) {
-  const ctx = textCanvas.getContext("2d");
-  const font = `bold ${TEXT_ROWS + 2}px monospace`;
-  ctx.font = font;
-  const w = Math.ceil(ctx.measureText(text).width);
+  const characters = [...text.toUpperCase()];
+  const w = characters.length * 6;
   textCanvas.width = w;
   textCanvas.height = TEXT_ROWS;
-  ctx.font = font;
-  ctx.textBaseline = "middle";
+  const ctx = textCanvas.getContext("2d");
   ctx.fillStyle = "white";
-  ctx.fillText(text, 0, TEXT_ROWS / 2 + 1);
+  characters.forEach((character, i) => {
+    const glyph = FONT[character] || FONT["?"];
+    for (let row = 0; row < TEXT_ROWS; row++) {
+      for (let column = 0; column < 5; column++) {
+        if (glyph[row] & (0x10 >> column)) ctx.fillRect(i * 6 + column, row, 1, 1);
+      }
+    }
+  });
   textTexture.dispose();
   textTexture.needsUpdate = true;
   ledMaterial.uniforms.textLength.value = w;
@@ -369,6 +458,7 @@ gui.addSegmented("LEDs", mode, [
   ["bands", "Bands"],
   ["equalizer", "Equalizer"],
   ["marquee", "Marquee"],
+  ["helmet", "Helmet"],
 ]);
 gui.addTextInput("Text", message, {
   visibleWhen: () => mode() === "marquee",
