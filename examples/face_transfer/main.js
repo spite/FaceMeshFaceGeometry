@@ -272,7 +272,49 @@ const thumbnails = REFERENCES.map((reference) => {
   picker.append(button);
   return button;
 });
+
+// The last tile opens a file picker and then shows the uploaded image.
+const fileInput = document.createElement("input");
+fileInput.type = "file";
+fileInput.accept = "image/*";
+fileInput.hidden = true;
+const uploadButton = thumbnails[0].cloneNode(false);
+uploadButton.title = "Upload an image with a face";
+const uploadPreview = document.createElement("div");
+uploadPreview.textContent = "+";
+uploadPreview.style.cssText =
+  "width: 100%; aspect-ratio: 1; display: grid; place-items: center; font-size: 28px; border: 1px dashed currentColor; border-radius: 4px; background: center / cover no-repeat";
+const uploadCaption = document.createElement("span");
+uploadCaption.textContent = "Upload";
+uploadCaption.style.cssText = "display: block; padding: 2px 0";
+uploadButton.append(uploadPreview, uploadCaption, fileInput);
+uploadButton.addEventListener("click", (e) => {
+  if (e.target !== fileInput) fileInput.click();
+});
+fileInput.addEventListener("change", () => {
+  if (fileInput.files.length) useFile(fileInput.files[0]);
+  fileInput.value = "";
+});
+picker.append(uploadButton);
+thumbnails.push(uploadButton);
 gui.addElement(picker);
+
+let uploadUrl;
+
+// Uses an uploaded or dropped image file as the reference face.
+async function useFile(file) {
+  if (!file.type.startsWith("image/")) return;
+  const url = URL.createObjectURL(file);
+  if (!(await useReference(url, uploadButton))) {
+    URL.revokeObjectURL(url);
+    return;
+  }
+  if (uploadUrl) URL.revokeObjectURL(uploadUrl);
+  uploadUrl = url;
+  uploadPreview.textContent = "";
+  uploadPreview.style.border = "none";
+  uploadPreview.style.backgroundImage = `url(${url})`;
+}
 
 function select(button) {
   for (const thumbnail of thumbnails) {
@@ -289,9 +331,11 @@ async function useReference(url, button) {
     setReferenceFace(imageLandmarker, texture);
     select(button);
     status.textContent = "";
+    return true;
   } catch (e) {
     status.textContent = e.message;
     console.error(e);
+    return false;
   }
 }
 
@@ -321,10 +365,7 @@ async function dropHandler(ev) {
   const file = [...ev.dataTransfer.files].find((f) =>
     f.type.startsWith("image/")
   );
-  if (!file) return;
-  const url = URL.createObjectURL(file);
-  await useReference(url, null);
-  URL.revokeObjectURL(url);
+  if (file) await useFile(file);
 }
 
 function dragOverHandler(ev) {
