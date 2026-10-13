@@ -2,6 +2,8 @@
 
 A three.js `BufferGeometry` for the face mesh from [MediaPipe's Face Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker). Feed it the 468 landmarks of a face and get a mesh with texture coordinates and normals that lines up with the video, plus the head pose, expression scores and irises when you need them.
 
+[![npm](https://img.shields.io/npm/v/face-mesh-face-geometry.svg)](https://www.npmjs.com/package/face-mesh-face-geometry)
+
 **[Landing page and live examples](https://spite.github.io/FaceMeshFaceGeometry/)**
 
 ![FaceMeshFaceGeometry](uvmap.png)
