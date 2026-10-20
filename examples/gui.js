@@ -2,12 +2,12 @@ import {
   GUI,
   signal,
   effect,
-} from "https://cdn.jsdelivr.net/npm/guspira@0.1.1/dist/guspira.min.js";
+} from "https://cdn.jsdelivr.net/npm/guspira@0.2.0/dist/guspira.min.js";
 
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
 stylesheet.href =
-  "https://cdn.jsdelivr.net/npm/guspira@0.1.1/dist/guspira.min.css";
+  "https://cdn.jsdelivr.net/npm/guspira@0.2.0/dist/guspira.min.css";
 document.head.append(stylesheet);
 
 // Creates a settings panel in the top right corner of the page.
