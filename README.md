@@ -26,6 +26,9 @@ They need a camera, and ask for permission when they open. Each has a settings p
 | [Face swap](https://spite.github.io/FaceMeshFaceGeometry/examples/face_off/) | With two people in view, each one wears the other's face. | `useVideoTexture`, two faces |
 | [Face warp](https://spite.github.io/FaceMeshFaceGeometry/examples/warp/) | A face filter: bigger eyes, closer together or further apart, a wider mouth, a bigger nose moved up or down, raised or lowered eyebrows, or bumps under the skin, stretching the webcam image with the mesh. | `useVideoTexture`, `FACES`, irises |
 | [Instanced faces](https://spite.github.io/FaceMeshFaceGeometry/examples/instanced/) | One video-textured face drawn 500 times as an instanced mesh. Drag to orbit. | `useVideoTexture`, `normalizeCoords` |
+| [Face hole](https://spite.github.io/FaceMeshFaceGeometry/examples/negative/) | A hole in your face with your face inside it, a couple of centimeters back, with a hole in that one, and so on, clipped by the real face with stencils. | Metric mode, `useVideoTexture`, `pose` |
+| [Water face](https://spite.github.io/FaceMeshFaceGeometry/examples/water/) | The classic 2D water ripple effect over the whole video. Moving your face leaves a wake of ripples, with your face above the water or deep under it. | `useVideoTexture`, video-space outline |
+| [Face in the crowd](https://spite.github.io/FaceMeshFaceGeometry/examples/crowd/) | Every face in a group photo replaced by your live face, shaped like the original and tinted to match. Pick a crew photo, or drop your own. | Landmarks of an image as shapes, `useVideoTexture` UVs, many faces |
 
 All but the face swap smooth the tracking, with a toggle in the panel to compare.
 
