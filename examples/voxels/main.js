@@ -17,7 +17,7 @@ import {
   FACES,
   METRIC_CAMERA_FOV,
 } from "../../js/face.js";
-import { createFaceLandmarker } from "../landmarker.js";
+import { createFaceLandmarker, detectVideoFrame } from "../landmarker.js";
 import {
   createGUI,
   addMirrorToggle,
@@ -226,7 +226,7 @@ async function render(landmarker) {
   }
 
   // Detect the face landmarks and pose in the current video frame.
-  const result = landmarker.detectForVideo(av.video, performance.now());
+  const result = detectVideoFrame(landmarker, av.video);
   av.style.opacity = 1;
   status.textContent = "";
 

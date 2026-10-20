@@ -4,8 +4,6 @@ import {
   SRGBColorSpace,
   Scene,
   SpotLight,
-  PerspectiveCamera,
-  HemisphereLight,
   AmbientLight,
   OrthographicCamera,
   DoubleSide,
@@ -16,29 +14,20 @@ import {
   BufferAttribute,
 } from "three";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
-import { OrbitControls } from "../../third_party/OrbitControls.js";
-import { createFaceLandmarker } from "../landmarker.js";
+import { createFaceLandmarker, detectVideoFrame } from "../landmarker.js";
 import { createGUI, addMirrorToggle, addSmoothingToggle, signal, effect } from "../gui.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
 const status = document.querySelector("#status");
 
-// Set a background color, or change alpha to false for a solid canvas.
 const renderer = new WebGLRenderer({ antialias: true, alpha: true, canvas });
-// renderer.setClearColor(0x202020);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = PCFShadowMap;
 
 const scene = new Scene();
 const camera = new OrthographicCamera(1, 1, 1, 1, -1000, 1000);
-
-// Change to renderer.render(scene, debugCamera); for interactive view.
-const debugCamera = new PerspectiveCamera(75, 1, 0.1, 1000);
-debugCamera.position.set(300, 300, 300);
-debugCamera.lookAt(scene.position);
-const controls = new OrbitControls(debugCamera, renderer.domElement);
 
 let width = 0;
 let height = 0;
@@ -58,8 +47,6 @@ function resize() {
     adjustedHeight = windowHeight;
   }
   renderer.setSize(adjustedWidth, adjustedHeight);
-  debugCamera.aspect = videoAspectRatio;
-  debugCamera.updateProjectionMatrix();
 }
 
 window.addEventListener("resize", () => {
@@ -119,14 +106,8 @@ spotLight.shadow.camera.far = 800;
 
 spotLight.shadow.bias = -0.005;
 
-scene.add(spotLight);
-
-const hemiLight = new HemisphereLight(0xffffde, 0x323263, 0.25 * Math.PI);
-//scene.add(hemiLight);
-
 const ambientLight = new AmbientLight(0x898989, 0.5 * Math.PI);
 scene.add(ambientLight);
-
 
 const wireframe = signal(false);
 
@@ -165,10 +146,7 @@ async function render(landmarker) {
   }
 
   // Detect the face landmarks in the current video frame.
-  const faces = landmarker.detectForVideo(
-    av.video,
-    performance.now()
-  ).faceLandmarks;
+  const faces = detectVideoFrame(landmarker, av.video).faceLandmarks;
 
   av.style.opacity = 1;
 
@@ -177,6 +155,7 @@ async function render(landmarker) {
     // Update face mesh geometry with new data.
     faceGeometry.update(faces[0], flipCamera());
   }
+  mask.visible = faces.length > 0;
 
   if (wireframe()) {
     // Render the mask.
@@ -197,27 +176,6 @@ async function render(landmarker) {
   requestAnimationFrame(() => render(landmarker));
 }
 
-// For debugging purposes, it shows the detected geometry.
-function draw(image, landmarks) {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  const w = image.naturalWidth;
-  const h = image.naturalHeight;
-  canvas.width = w;
-  canvas.height = h;
-  ctx.fillStyle = "#ff00ff";
-  ctx.drawImage(image, 0, 0);
-  for (const p of landmarks) {
-    ctx.beginPath();
-    ctx.arc(p.x * w, p.y * h, 4, 0, 2 * Math.PI);
-    ctx.fill();
-  }
-  canvas.style.zIndex = 100;
-  canvas.style.height = "auto";
-  canvas.style.width = "50vw";
-  document.body.append(canvas);
-}
-
 // Finds a face in an image and uses it to texture map the live feed face.
 function setReferenceFace(imageLandmarker, texture) {
   const faces = imageLandmarker.detect(texture.image).faceLandmarks;
@@ -231,7 +189,6 @@ function setReferenceFace(imageLandmarker, texture) {
     faceGeometry.uvs[j * 2 + 1] = 1 - landmarks[j].y;
   }
   faceGeometry.getAttribute("uv").needsUpdate = true;
-  // draw(texture.image, landmarks);
   texture.colorSpace = SRGBColorSpace;
   if (material.map) {
     material.map.dispose();
@@ -326,13 +283,16 @@ function select(button) {
 async function useReference(url, button) {
   if (!imageLandmarker) return;
   status.textContent = "Analysing...";
+  let texture;
   try {
-    const texture = await loader.loadAsync(url);
+    texture = await loader.loadAsync(url);
     setReferenceFace(imageLandmarker, texture);
     select(button);
     status.textContent = "";
     return true;
   } catch (e) {
+    // A picture without a face is never used, so free it.
+    texture?.dispose();
     status.textContent = e.message;
     console.error(e);
     return false;

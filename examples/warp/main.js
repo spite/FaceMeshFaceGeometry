@@ -13,7 +13,7 @@ import {
   VideoTexture,
 } from "three";
 import { FaceMeshFaceGeometry, FACES, UVS } from "../../js/face.js";
-import { createFaceLandmarker } from "../landmarker.js";
+import { createFaceLandmarker, detectVideoFrame } from "../landmarker.js";
 import { createGUI, addMirrorToggle, addSmoothingToggle, signal } from "../gui.js";
 
 const av = document.querySelector("gum-av");
@@ -380,7 +380,7 @@ function warp(time) {
       const f = falloff(r) * m.scale;
       dx += ox * f;
       dy += oy * f;
-        if (m.bump && r > 0) light -= SHADING * m.scale * falloffSlope(r) * ((ox * LIGHT.x + oy * LIGHT.y) / (r * m.radius));
+      if (m.bump && r > 0) light -= SHADING * m.scale * falloffSlope(r) * ((ox * LIGHT.x + oy * LIGHT.y) / (r * m.radius));
     }
     for (const m of move) {
       const r = Math.hypot(x - m.x, y - m.y) / m.radius;
@@ -424,7 +424,7 @@ async function render(landmarker) {
   background.scale.set(flipCamera() ? -width : width, height, 1);
 
   const now = performance.now();
-  const faces = landmarker.detectForVideo(av.video, now).faceLandmarks;
+  const faces = detectVideoFrame(landmarker, av.video).faceLandmarks;
   const found = faces.length > 0;
   if (found) {
     faceGeometry.update(faces[0], flipCamera());

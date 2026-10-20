@@ -17,7 +17,7 @@ import {
 } from "three";
 import { FaceMeshFaceGeometry, METRIC_CAMERA_FOV } from "../../js/face.js";
 import { OrbitControls } from "../../third_party/OrbitControls.js";
-import { createFaceLandmarker } from "../landmarker.js";
+import { createFaceLandmarker, detectVideoFrame } from "../landmarker.js";
 import { createGUI, addMirrorToggle, addSmoothingToggle, signal } from "../gui.js";
 import { createGlasses, createClownNose } from "../accessories.js";
 
@@ -25,9 +25,7 @@ const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
 const status = document.querySelector("#status");
 
-// Set a background color, or change alpha to false for a solid canvas.
 const renderer = new WebGLRenderer({ antialias: true, alpha: true, canvas });
-// renderer.setClearColor(0x202020);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = PCFShadowMap;
@@ -38,8 +36,8 @@ const scene = new Scene();
 const camera = new PerspectiveCamera(METRIC_CAMERA_FOV, 1, 1, 1000);
 
 // Camera to orbit around the face, enabled from the panel. It's placed when the face is first found.
-const debugCamera = new PerspectiveCamera(50, 1, 1, 1000);
-const controls = new OrbitControls(debugCamera, renderer.domElement);
+const orbitCamera = new PerspectiveCamera(50, 1, 1, 1000);
+const controls = new OrbitControls(orbitCamera, renderer.domElement);
 controls.enabled = false;
 const orbitOffset = new Vector3(18, 6, 26);
 let orbitPlaced = false;
@@ -62,9 +60,9 @@ function resize() {
     adjustedHeight = windowHeight;
   }
   renderer.setSize(adjustedWidth, adjustedHeight);
-  camera.aspect = debugCamera.aspect = videoAspectRatio;
+  camera.aspect = orbitCamera.aspect = videoAspectRatio;
   camera.updateProjectionMatrix();
-  debugCamera.updateProjectionMatrix();
+  orbitCamera.updateProjectionMatrix();
 }
 
 window.addEventListener("resize", () => {
@@ -146,7 +144,7 @@ async function render(landmarker) {
   }
 
   // Detect the face landmarks and pose in the current video frame.
-  const result = landmarker.detectForVideo(av.video, performance.now());
+  const result = detectVideoFrame(landmarker, av.video);
 
   status.textContent = "";
 
@@ -165,9 +163,9 @@ async function render(landmarker) {
     if (!orbitPlaced) {
       orbitPlaced = true;
       controls.target.copy(headPosition);
-      debugCamera.position.copy(headPosition).add(orbitOffset);
+      orbitCamera.position.copy(headPosition).add(orbitOffset);
     } else {
-      debugCamera.position.add(headPosition).sub(controls.target);
+      orbitCamera.position.add(headPosition).sub(controls.target);
       controls.target.copy(headPosition);
     }
     controls.update();
@@ -176,18 +174,18 @@ async function render(landmarker) {
   if (wireframe()) {
     // Render the mask.
     renderer.autoClear = true;
-    renderer.render(scene, orbit() ? debugCamera : camera);
+    renderer.render(scene, orbit() ? orbitCamera : camera);
     // Prevent renderer from clearing the color buffer.
     renderer.autoClear = false;
     renderer.clear(false, true, false);
     mask.material = wireframeMaterial;
     // Render again with the wireframe material.
-    renderer.render(scene, orbit() ? debugCamera : camera);
+    renderer.render(scene, orbit() ? orbitCamera : camera);
     mask.material = material;
     renderer.autoClear = true;
   } else {
     // Render the scene normally.
-    renderer.render(scene, orbit() ? debugCamera : camera);
+    renderer.render(scene, orbit() ? orbitCamera : camera);
   }
 
   controls.enabled = orbit();

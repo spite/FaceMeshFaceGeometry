@@ -18,7 +18,7 @@ import {
 } from "three";
 import { FaceMeshFaceGeometry, METRIC_CAMERA_FOV } from "../../js/face.js";
 import { createGlasses, createClownNose } from "../accessories.js";
-import { createFaceLandmarker } from "../landmarker.js";
+import { createFaceLandmarker, detectVideoFrame } from "../landmarker.js";
 import { createGUI, addMirrorToggle, addSmoothingToggle, signal } from "../gui.js";
 
 const av = document.querySelector("gum-av");
@@ -158,7 +158,7 @@ async function render(landmarker) {
   }
 
   // Detect the face landmarks and pose in the current video frame.
-  const result = landmarker.detectForVideo(av.video, performance.now());
+  const result = detectVideoFrame(landmarker, av.video);
 
   av.style.opacity = 1;
   status.textContent = "";

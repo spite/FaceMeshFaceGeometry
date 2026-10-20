@@ -45,6 +45,9 @@ const point = new Vector3();
 const posePosition = new Vector3();
 const poseRotation = new Quaternion();
 const poseScale = new Vector3();
+const trackX = new Vector3();
+const trackY = new Vector3();
+const trackZ = new Vector3();
 
 class FaceMeshFaceGeometry extends BufferGeometry {
   constructor(options = {}) {
@@ -125,6 +128,8 @@ class FaceMeshFaceGeometry extends BufferGeometry {
     if (!landmarks) return false;
     const matrices = result.facialTransformationMatrixes;
     this.update(landmarks, flipped, matrices && matrices[index], timestamp);
+    // Cleared first, so a result without blendshapes doesn't leave the last face's scores.
+    for (const name in this.blendshapes) delete this.blendshapes[name];
     const blendshapes = result.faceBlendshapes && result.faceBlendshapes[index];
     if (blendshapes) {
       for (const c of blendshapes.categories) {
@@ -311,12 +316,13 @@ class FaceMeshFaceGeometry extends BufferGeometry {
     const normal = new Vector3();
     this.triangle.getNormal(normal);
     const matrix = new Matrix4();
-    const x = this.p1.clone().sub(this.p2).normalize();
-    const y = this.p1.clone().sub(this.p0).normalize();
-    const z = new Vector3().crossVectors(x, y);
-    const y2 = new Vector3().crossVectors(x, z).normalize();
-    const z2 = new Vector3().crossVectors(x, y2).normalize();
-    matrix.makeBasis(x, y2, z2);
+    const x = trackX.subVectors(this.p1, this.p2).normalize();
+    const y = trackY.subVectors(this.p1, this.p0).normalize();
+    const z = trackZ.crossVectors(x, y);
+    // y becomes the axis orthogonal to x and z, and z the one orthogonal to x and y.
+    y.crossVectors(x, z).normalize();
+    z.crossVectors(x, y).normalize();
+    matrix.makeBasis(x, y, z);
     return { position: center, normal, rotation: matrix };
   }
 }

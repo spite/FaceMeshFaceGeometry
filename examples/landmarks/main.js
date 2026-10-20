@@ -7,7 +7,7 @@ import {
   Vector3,
 } from "three";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
-import { createFaceLandmarker } from "../landmarker.js";
+import { createFaceLandmarker, detectVideoFrame } from "../landmarker.js";
 import { createGUI, addMirrorToggle, addSmoothingToggle, signal } from "../gui.js";
 
 const av = document.querySelector("gum-av");
@@ -352,10 +352,7 @@ async function render(landmarker) {
   }
 
   // Detect the face landmarks in the current video frame.
-  const faces = landmarker.detectForVideo(
-    av.video,
-    performance.now()
-  ).faceLandmarks;
+  const faces = detectVideoFrame(landmarker, av.video).faceLandmarks;
 
   av.style.opacity = 1;
   status.textContent = "";

@@ -21,7 +21,7 @@ import {
   PCFShadowMap,
 } from "three";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
-import { createFaceLandmarker } from "../landmarker.js";
+import { createFaceLandmarker, detectVideoFrame } from "../landmarker.js";
 import { createGUI, addSmoothingToggle, signal } from "../gui.js";
 
 const av = document.querySelector("gum-av");
@@ -124,8 +124,19 @@ function target(color, x, y, z, radius) {
 
 const floorMaterial = new MeshStandardMaterial({ color: 0x15151b, roughness: 0.9 });
 
-function buildRoom() {
+// Frees the last room's geometry and materials, keeping the ones every room shares.
+function disposeRoom() {
+  room.traverse((object) => {
+    object.geometry?.dispose();
+    if (object.material && object.material !== floorMaterial && object.material !== lineMaterial) {
+      object.material.dispose();
+    }
+  });
   room.clear();
+}
+
+function buildRoom() {
+  disposeRoom();
   targets.length = 0;
   const w = screenWidth();
   const h = screenHeight;
@@ -253,7 +264,7 @@ async function render(landmarker) {
     faceGeometry.setSize(width, height);
   }
 
-  const result = landmarker.detectForVideo(av.video, performance.now());
+  const result = detectVideoFrame(landmarker, av.video);
   status.textContent = "";
 
   // Mirrored, so that moving to your right moves the eye to the right of the screen.

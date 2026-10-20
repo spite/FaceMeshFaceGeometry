@@ -68,6 +68,10 @@ export declare class FaceMeshFaceGeometry extends BufferGeometry {
   normalizeCoords: boolean;
   metric: boolean;
   flipped: boolean;
+  /** Width of the input, as given to setSize(). */
+  w: number;
+  /** Height of the input, as given to setSize(). */
+  h: number;
   positions: Float32Array;
   uvs: Float32Array;
   /** Canonical face to camera space, in centimeters. Metric mode only. */
@@ -80,6 +84,9 @@ export declare class FaceMeshFaceGeometry extends BufferGeometry {
 
   /** Sets the size of the input, to frame the coordinates. */
   setSize(width: number, height: number): void;
+
+  /** Puts back the fixed texture coordinates, for instance after replacing them. */
+  setUvs(): void;
 
   /** Turns smoothing off, on with the defaults, or on with these parameters. */
   setSmoothing(smoothing: boolean | SmoothingOptions | undefined): void;

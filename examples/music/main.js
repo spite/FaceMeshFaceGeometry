@@ -20,6 +20,7 @@ import {
   PMREMGenerator,
   CatmullRomCurve3,
   TubeGeometry,
+  DynamicDrawUsage,
   DirectionalLight,
   Vector2,
   Vector3,
@@ -31,7 +32,7 @@ import { OutputPass } from "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/
 import { ShaderPass } from "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/postprocessing/ShaderPass.js";
 import { RoomEnvironment } from "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/environments/RoomEnvironment.js";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
-import { createFaceLandmarker } from "../landmarker.js";
+import { createFaceLandmarker, detectVideoFrame } from "../landmarker.js";
 import {
   createGUI,
   addMirrorToggle,
@@ -406,14 +407,26 @@ const FACE_OVAL = [
   400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21,
   54, 103, 67, 109,
 ];
-const rimPoints = FACE_OVAL.map(() => new Vector3());
+const RIM_SEGMENTS = 144;
+const RIM_SIDES = 12;
+// A circle of points to start from, so the tube is built once with valid frames.
+const rimPoints = FACE_OVAL.map((_, i) => {
+  const a = (i / FACE_OVAL.length) * Math.PI * 2;
+  return new Vector3(Math.cos(a), Math.sin(a), 0);
+});
 const rimCurve = new CatmullRomCurve3(rimPoints, true);
 const rim = new Mesh(
-  new TubeGeometry(rimCurve, 4, 1, 4, true),
+  new TubeGeometry(rimCurve, RIM_SEGMENTS, 1, RIM_SIDES, true),
   new MeshStandardMaterial({ color: 0xd8a640, metalness: 1, roughness: 0.22 })
 );
+rim.geometry.getAttribute("position").setUsage(DynamicDrawUsage);
+rim.geometry.getAttribute("normal").setUsage(DynamicDrawUsage);
 scene.add(rim);
 
+const rimCenter = new Vector3();
+const rimNormal = new Vector3();
+
+// Moves the tube's vertices onto the new outline, in TubeGeometry's layout, instead of rebuilding it.
 function updateRim() {
   const radius = faceGeometry.boundingSphere.radius;
   for (let i = 0; i < FACE_OVAL.length; i++) {
@@ -422,8 +435,34 @@ function updateRim() {
   }
   // The curve caches its length, so it needs refreshing after the points move.
   rimCurve.updateArcLengths();
-  rim.geometry.dispose();
-  rim.geometry = new TubeGeometry(rimCurve, 144, radius * 0.035, 12, true);
+  const frames = rimCurve.computeFrenetFrames(RIM_SEGMENTS, true);
+  const position = rim.geometry.getAttribute("position");
+  const normal = rim.geometry.getAttribute("normal");
+  const thickness = radius * 0.035;
+  for (let i = 0; i <= RIM_SEGMENTS; i++) {
+    // The last ring closes the loop on the first.
+    const s = i % RIM_SEGMENTS;
+    rimCurve.getPointAt(s / RIM_SEGMENTS, rimCenter);
+    const N = frames.normals[s];
+    const B = frames.binormals[s];
+    for (let j = 0; j <= RIM_SIDES; j++) {
+      const v = (j / RIM_SIDES) * Math.PI * 2;
+      const sin = Math.sin(v);
+      const cos = -Math.cos(v);
+      rimNormal.set(cos * N.x + sin * B.x, cos * N.y + sin * B.y, cos * N.z + sin * B.z).normalize();
+      const k = i * (RIM_SIDES + 1) + j;
+      normal.setXYZ(k, rimNormal.x, rimNormal.y, rimNormal.z);
+      position.setXYZ(
+        k,
+        rimCenter.x + thickness * rimNormal.x,
+        rimCenter.y + thickness * rimNormal.y,
+        rimCenter.z + thickness * rimNormal.z
+      );
+    }
+  }
+  position.needsUpdate = true;
+  normal.needsUpdate = true;
+  rim.geometry.computeBoundingSphere();
 }
 
 const light = new DirectionalLight(0xffffff, 1);
@@ -450,8 +489,7 @@ gui.addFileButton(
   { accept: "audio/*" }
 );
 gui.addButton("Stop", () => {
-  audio.stop();
-  audio.stop = () => {};
+  audio.halt();
   status.textContent = "Pick a sound in the panel.";
 });
 gui.addSegmented("LEDs", mode, [
@@ -510,7 +548,7 @@ async function render(landmarker) {
   background.scale.set(flipCamera() ? -width : width, height, 1);
 
   // Detect the face landmarks in the current video frame.
-  const result = landmarker.detectForVideo(av.video, performance.now());
+  const result = detectVideoFrame(landmarker, av.video);
   const found = faceGeometry.updateFromResult(result, { flipped: flipCamera() });
   leds.visible = faceMask.visible = found;
   visor.visible = found && showVisor();

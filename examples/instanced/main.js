@@ -15,32 +15,28 @@ import {
   VideoTexture,
   MeshStandardMaterial,
   Vector3,
-  BoxGeometry,
-  MeshNormalMaterial,
 } from "three";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
 import { OrbitControls } from "../../third_party/OrbitControls.js";
-import { createFaceLandmarker } from "../landmarker.js";
+import { createFaceLandmarker, detectVideoFrame } from "../landmarker.js";
 import { createGUI, addMirrorToggle, addSmoothingToggle, signal } from "../gui.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
 const status = document.querySelector("#status");
 
-// Set a background color, or change alpha to false for a solid canvas.
 const renderer = new WebGLRenderer({ antialias: true, alpha: true, canvas });
-// renderer.setClearColor(0x202020);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = PCFShadowMap;
 
 const scene = new Scene();
 
-// Change to renderer.render(scene, debugCamera); for interactive view.
+// Drag to orbit around the ring of faces.
 const camera = new PerspectiveCamera(75, 1, 0.1, 1000);
 camera.position.set(100, 0, 150);
 camera.lookAt(scene.position);
-const controls = new OrbitControls(camera, renderer.domElement);
+new OrbitControls(camera, renderer.domElement);
 
 let width = 0;
 let height = 0;
@@ -86,17 +82,6 @@ instancedFaces.receiveShadow = instancedFaces.castShadow = true;
 // The instances move every frame, so skip the cached bounding sphere.
 instancedFaces.frustumCulled = false;
 instancedFaces.scale.setScalar(20);
-
-// Dummy instances for debugging.
-const mat = new MeshNormalMaterial({ wireframe: true });
-const instancedDummy = new InstancedMesh(
-  new BoxGeometry(1, 1, 1),
-  mat,
-  amount
-);
-//scene.add(instancedDummy);
-instancedDummy.receiveShadow = instancedDummy.castShadow = true;
-instancedDummy.scale.setScalar(10);
 
 // Add lights.
 // A decay of 0 keeps the intensity independent of distance.
@@ -157,10 +142,7 @@ async function render(landmarker) {
   }
 
   // Detect the face landmarks in the current video frame.
-  const faces = landmarker.detectForVideo(
-    av.video,
-    performance.now()
-  ).faceLandmarks;
+  const faces = detectVideoFrame(landmarker, av.video).faceLandmarks;
 
   status.textContent = "";
 
@@ -192,10 +174,8 @@ async function render(landmarker) {
     dummy.rotation.setFromRotationMatrix(lookAt);
     dummy.updateMatrix();
     instancedFaces.setMatrixAt(i, dummy.matrix);
-    instancedDummy.setMatrixAt(i, dummy.matrix);
   }
   instancedFaces.instanceMatrix.needsUpdate = true;
-  instancedDummy.instanceMatrix.needsUpdate = true;
 
   if (wireframe()) {
     // Render the faces.

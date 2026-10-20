@@ -13,11 +13,13 @@ import {
   MeshBasicMaterial,
   TextureLoader,
   BufferAttribute,
+  BufferGeometry,
+  DoubleSide,
   Vector2,
   Vector4,
 } from "three";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
-import { createFaceLandmarker } from "../landmarker.js";
+import { createFaceLandmarker, detectVideoFrame } from "../landmarker.js";
 import { createGUI, addMirrorToggle, addSmoothingToggle, signal } from "../gui.js";
 
 const av = document.querySelector("gum-av");
@@ -63,8 +65,23 @@ const faceMaterial = new MeshBasicMaterial({
   transparent: true,
 });
 const faceMesh = new Mesh(faceGeometry, faceMaterial);
+
+// The mesh and its alpha mask have holes at the mouth and eyes, so fill them, or the water shows through.
+const HOLES = [
+  [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95],
+  [33, 246, 161, 160, 159, 158, 157, 173, 133, 155, 154, 153, 145, 144, 163, 7],
+  [263, 466, 388, 387, 386, 385, 384, 398, 362, 382, 381, 380, 374, 373, 390, 249],
+];
+const holesGeometry = new BufferGeometry();
+holesGeometry.setAttribute("position", faceGeometry.getAttribute("position"));
+holesGeometry.setIndex(
+  HOLES.flatMap((loop) => loop.slice(1, -1).flatMap((v, i) => [loop[0], v, loop[i + 2]]))
+);
+const holesMesh = new Mesh(holesGeometry, new MeshBasicMaterial({ side: DoubleSide }));
+holesMesh.frustumCulled = false;
+
 const faceScene = new Scene();
-faceScene.add(faceMesh);
+faceScene.add(faceMesh, holesMesh);
 // Video pixels, centered, as the geometry lays them out.
 const faceCamera = new OrthographicCamera(1, 1, 1, 1, -1000, 1000);
 
@@ -320,7 +337,7 @@ async function render(landmarker) {
   }
 
   // Detect the face landmarks in the current video frame.
-  const result = landmarker.detectForVideo(av.video, performance.now());
+  const result = detectVideoFrame(landmarker, av.video);
   if (status.textContent === "Detecting face...") status.textContent = "";
 
   const found = faceGeometry.updateFromResult(result, { flipped: flipCamera() });
@@ -333,7 +350,7 @@ async function render(landmarker) {
   displayMaterial.uniforms.highlights.value = highlights();
   displayMaterial.uniforms.mirrored.value = flipCamera() ? 1 : 0;
 
-  faceMesh.visible = found;
+  faceMesh.visible = holesMesh.visible = found;
   renderer.setRenderTarget(faceMask);
   renderer.render(faceScene, faceCamera);
   renderer.setRenderTarget(null);

@@ -12,7 +12,7 @@ import {
   DynamicDrawUsage,
 } from "three";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
-import { createFaceLandmarker } from "../landmarker.js";
+import { createFaceLandmarker, detectVideoFrame } from "../landmarker.js";
 import { createGUI, addSmoothingToggle, signal, effect } from "../gui.js";
 
 const av = document.querySelector("gum-av");
@@ -344,7 +344,7 @@ async function render(landmarker) {
   }
 
   // Detect the face landmarks in the current video frame.
-  const result = landmarker.detectForVideo(av.video, performance.now());
+  const result = detectVideoFrame(landmarker, av.video);
 
   const found = liveGeometry.updateFromResult(result);
   if (found) {

@@ -30,4 +30,31 @@ async function createFaceLandmarker({
   }
 }
 
-export { createFaceLandmarker };
+// Counts the frames a video presents, where the browser can tell.
+const frameCounts = new WeakMap();
+function frameCount(video) {
+  if (!video.requestVideoFrameCallback) return null;
+  if (!frameCounts.has(video)) {
+    frameCounts.set(video, 0);
+    const tick = () => {
+      frameCounts.set(video, frameCounts.get(video) + 1);
+      video.requestVideoFrameCallback(tick);
+    };
+    video.requestVideoFrameCallback(tick);
+  }
+  return frameCounts.get(video);
+}
+
+// Runs the landmarker once per video frame. The render loop follows the display, often
+// two or four times faster than the camera, and a frame's landmarks don't change.
+const lastResults = new WeakMap();
+function detectVideoFrame(landmarker, video) {
+  const frame = frameCount(video);
+  const last = lastResults.get(landmarker);
+  if (frame !== null && last?.frame === frame && last.video === video) return last.result;
+  const result = landmarker.detectForVideo(video, performance.now());
+  lastResults.set(landmarker, { frame, video, result });
+  return result;
+}
+
+export { createFaceLandmarker, detectVideoFrame };

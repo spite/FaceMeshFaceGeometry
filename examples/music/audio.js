@@ -25,7 +25,17 @@ class AudioInput {
     }
     this.context.resume();
     this.stop();
+    this.stop = () => {};
+    // Marks this request, so one that finishes after a newer one can tell.
+    this.request = {};
     return this.context;
+  }
+
+  // Stops the sound, and any microphone still waiting for permission.
+  halt() {
+    this.stop();
+    this.stop = () => {};
+    this.request = {};
   }
 
   // A synthesized four-bar loop: kick, clap, hi-hats, bass and an arpeggio.
@@ -116,7 +126,13 @@ class AudioInput {
   // Listens to the microphone; it isn't played back, to avoid feedback.
   async useMicrophone() {
     const ctx = this.ensureContext();
+    const request = this.request;
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Another sound was picked while the permission prompt was open.
+    if (this.request !== request) {
+      for (const track of stream.getTracks()) track.stop();
+      return;
+    }
     const source = ctx.createMediaStreamSource(stream);
     source.connect(this.analyser);
     this.stop = () => {
@@ -125,20 +141,26 @@ class AudioInput {
     };
   }
 
-  // Plays a music file, looping.
-  playFile(file) {
+  // Plays a music file, looping. Rejects if the file can't be played.
+  async playFile(file) {
     const ctx = this.ensureContext();
     const audio = new Audio(URL.createObjectURL(file));
     audio.loop = true;
     const source = ctx.createMediaElementSource(audio);
     source.connect(this.analyser);
     source.connect(this.output);
-    audio.play();
     this.stop = () => {
       audio.pause();
       source.disconnect();
       URL.revokeObjectURL(audio.src);
     };
+    try {
+      await audio.play();
+    } catch (e) {
+      this.stop();
+      this.stop = () => {};
+      throw e;
+    }
   }
 
   // Reads the spectrum, and the bass, mid and treble levels from 0 to 1, rising fast and falling slowly.

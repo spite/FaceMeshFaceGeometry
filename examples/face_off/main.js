@@ -2,7 +2,6 @@ import {
   WebGLRenderer,
   SRGBColorSpace,
   Scene,
-  PerspectiveCamera,
   OrthographicCamera,
   DoubleSide,
   Mesh,
@@ -10,27 +9,18 @@ import {
   VideoTexture,
 } from "three";
 import { FaceMeshFaceGeometry } from "../../js/face.js";
-import { OrbitControls } from "../../third_party/OrbitControls.js";
-import { createFaceLandmarker } from "../landmarker.js";
+import { createFaceLandmarker, detectVideoFrame } from "../landmarker.js";
 import { createGUI, addMirrorToggle, signal } from "../gui.js";
 
 const av = document.querySelector("gum-av");
 const canvas = document.querySelector("canvas");
 const status = document.querySelector("#status");
 
-// Set a background color, or change alpha to false for a solid canvas.
 const renderer = new WebGLRenderer({ antialias: true, alpha: true, canvas });
-// renderer.setClearColor(0x202020);
 renderer.setPixelRatio(window.devicePixelRatio);
 
 const scene = new Scene();
 const camera = new OrthographicCamera(1, 1, 1, 1, -1000, 1000);
-
-// Change to renderer.render(scene, debugCamera); for interactive view.
-const debugCamera = new PerspectiveCamera(75, 1, 0.1, 1000);
-debugCamera.position.set(300, 300, 300);
-debugCamera.lookAt(scene.position);
-const controls = new OrbitControls(debugCamera, renderer.domElement);
 
 let width = 0;
 let height = 0;
@@ -50,8 +40,6 @@ function resize() {
     adjustedHeight = windowHeight;
   }
   renderer.setSize(adjustedWidth, adjustedHeight);
-  debugCamera.aspect = videoAspectRatio;
-  debugCamera.updateProjectionMatrix();
 }
 
 window.addEventListener("resize", () => {
@@ -82,7 +70,6 @@ scene.add(face1);
 const face2 = new Mesh(faceGeometry2, material);
 scene.add(face2);
 
-
 const wireframe = signal(false);
 
 const gui = createGUI();
@@ -112,15 +99,14 @@ async function render(landmarker) {
   }
 
   // Detect the face landmarks in the current video frame.
-  const faces = landmarker.detectForVideo(
-    av.video,
-    performance.now()
-  ).faceLandmarks;
+  const faces = detectVideoFrame(landmarker, av.video).faceLandmarks;
 
   status.textContent = "";
 
-  // There's at least one face.
-  if (faces.length == 2) {
+  // Each face wears the other's, so both are needed; otherwise neither is drawn.
+  const found = faces.length === 2;
+  face1.visible = face2.visible = found;
+  if (found) {
     // Update face mesh geometry with new data.
     faceGeometry1.update(faces[0], flipCamera());
     faceGeometry2.update(faces[1], flipCamera());
